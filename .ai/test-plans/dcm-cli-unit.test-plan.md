@@ -627,24 +627,6 @@ test classes. Instead:
 - **When:** `dcm catalog item get` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
 
-### TC-U053: Update catalog item
-
-- **Requirement:** REQ-CIT-070, REQ-CIT-080
-- **Priority:** High
-- **Type:** Unit
-- **Given:** A valid patch file AND a mock server returning 200
-- **When:** `dcm catalog item update my-catalog-item --from-file patch.yaml` is executed
-- **Then:** A PATCH request is sent to `/api/v1alpha1/catalog-items/my-catalog-item` AND the updated item is displayed
-
-### TC-U054: Update catalog item without --from-file fails
-
-- **Requirement:** REQ-CIT-120
-- **Priority:** High
-- **Type:** Unit
-- **Given:** No `--from-file` flag is provided
-- **When:** `dcm catalog item update my-catalog-item` is executed
-- **Then:** The CLI exits with code 2 and displays a usage error
-
 ### TC-U055: Delete catalog item
 
 - **Requirement:** REQ-CIT-090, REQ-CIT-100
@@ -679,15 +661,6 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for catalog item ID `nonexistent`
 - **When:** `dcm catalog item get nonexistent` is executed
-- **Then:** The CLI displays the error in the configured output format AND exits with code 1
-
-### TC-U109: Update non-existent catalog item
-
-- **Requirement:** REQ-CIT-070, REQ-XC-ERR-010
-- **Priority:** High
-- **Type:** Unit
-- **Given:** A valid patch file AND a mock server returning 404 with RFC 7807 body for catalog item ID `nonexistent`
-- **When:** `dcm catalog item update nonexistent --from-file patch.yaml` is executed
 - **Then:** The CLI displays the error in the configured output format AND exits with code 1
 
 ### TC-U110: Delete non-existent catalog item
@@ -1248,12 +1221,10 @@ dedicated test class or `Describe` block.
 | REQ-CIT-040     | TC-U049, TC-U050                                    | Covered |
 | REQ-CIT-050     | TC-U049                                             | Covered |
 | REQ-CIT-060     | TC-U051                                             | Covered |
-| REQ-CIT-070     | TC-U053                                             | Covered |
-| REQ-CIT-080     | TC-U053                                             | Covered |
 | REQ-CIT-090     | TC-U055                                             | Covered |
 | REQ-CIT-100     | TC-U055                                             | Covered |
-| REQ-CIT-110     | TC-U067 (via TC-U046, TC-U049, TC-U051, TC-U053, TC-U055) | Covered |
-| REQ-CIT-120     | TC-U048, TC-U054                                    | Covered |
+| REQ-CIT-110     | TC-U067 (via TC-U046, TC-U049, TC-U051, TC-U055) | Covered |
+| REQ-CIT-120     | TC-U048                                             | Covered |
 | REQ-CIT-130     | TC-U052, TC-U056                                    | Covered |
 | REQ-CIN-010     | TC-U058                                             | Covered |
 | REQ-CIN-020     | TC-U059                                             | Covered |

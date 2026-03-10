@@ -151,7 +151,6 @@ dcm
 │   │   ├── create
 │   │   ├── list
 │   │   ├── get
-│   │   ├── update
 │   │   └── delete
 │   └── instance        # Catalog item instance management
 │       ├── create
@@ -395,22 +394,6 @@ dcm catalog item get my-catalog-item
 dcm catalog item get my-catalog-item -o yaml
 ```
 
-#### `dcm catalog item update`
-
-Update an existing catalog item (JSON Merge Patch).
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `CATALOG_ITEM_ID` | Yes | Catalog item ID |
-
-| Flag | Required | Description |
-|------|----------|-------------|
-| `--from-file` | Yes | Path to patch YAML/JSON file |
-
-```bash
-dcm catalog item update my-catalog-item --from-file patch.yaml
-```
-
 #### `dcm catalog item delete`
 
 Delete a catalog item by ID.
@@ -596,7 +579,6 @@ func newCatalogItemCommand() *cobra.Command              // parent: dcm catalog 
 func newCatalogItemCreateCommand() *cobra.Command
 func newCatalogItemListCommand() *cobra.Command
 func newCatalogItemGetCommand() *cobra.Command
-func newCatalogItemUpdateCommand() *cobra.Command
 func newCatalogItemDeleteCommand() *cobra.Command
 
 // catalog_instance.go
@@ -1053,7 +1035,7 @@ make test-e2e   # Requires DCM_API_GATEWAY_URL pointing to live stack
 
 - Policy CRUD operations (create, list, get, update, delete)
 - Service type read operations (list, get)
-- Catalog item CRUD operations (create, list, get, update, delete)
+- Catalog item operations (create, list, get, delete)
 - Catalog item instance operations (create, list, get, delete)
 - Version display
 - Output formatting (table, JSON, YAML)

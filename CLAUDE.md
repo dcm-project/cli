@@ -56,7 +56,7 @@ make test-e2e
   - `root.go`: Root command with global flags
   - `policy.go`: Policy CRUD commands
   - `catalog_service_type.go`: Service type list/get commands
-  - `catalog_item.go`: Catalog item CRUD commands
+  - `catalog_item.go`: Catalog item create/list/get/delete commands
   - `catalog_instance.go`: Catalog instance create/list/get/delete commands
   - `version.go`: Version display command
 
@@ -74,7 +74,7 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 ## Key Conventions
 
-1. **Cobra commands**: Each resource group (policy, catalog service-type, catalog item, catalog instance) has its own file with create/list/get/update/delete subcommands.
+1. **Cobra commands**: Each resource group (policy, catalog service-type, catalog item, catalog instance) has its own file with subcommands. Policy supports create/list/get/update/delete. Catalog item and catalog instance do not support update.
 
 2. **Generated clients**: Import `github.com/dcm-project/policy-manager/pkg/client` and `github.com/dcm-project/catalog-manager/pkg/client`. No hand-written HTTP client code.
 

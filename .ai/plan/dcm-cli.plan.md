@@ -13,7 +13,7 @@ dependencies.
 
 - Policy CRUD operations (create, list, get, update, delete)
 - Service type read operations (list, get)
-- Catalog item CRUD operations (create, list, get, update, delete)
+- Catalog item operations (create, list, get, delete)
 - Catalog item instance operations (create, list, get, delete)
 - Version display
 - Output formatting (table, JSON, YAML)
@@ -642,9 +642,9 @@ Formatting).
 
 #### Overview
 
-Implement the `dcm catalog item` command group with CRUD subcommands: `create`,
-`list`, `get`, `update`, `delete`. Each command uses the generated Catalog
-Manager client.
+Implement the `dcm catalog item` command group with subcommands: `create`,
+`list`, `get`, `delete`. Each command uses the generated Catalog Manager client.
+No update operation is supported for catalog items.
 
 Out of scope: catalog item validation, catalog item versioning.
 
@@ -658,13 +658,11 @@ Out of scope: catalog item validation, catalog item versioning.
 | REQ-CIT-040 | `dcm catalog item list` MUST list catalog items with optional `--service-type`, `--page-size`, `--page-token` flags | MUST | |
 | REQ-CIT-050 | `dcm catalog item list` MUST display catalog items in the configured output format | MUST | |
 | REQ-CIT-060 | `dcm catalog item get` MUST accept a `CATALOG_ITEM_ID` positional argument and display the catalog item | MUST | |
-| REQ-CIT-070 | `dcm catalog item update` MUST accept a `CATALOG_ITEM_ID` positional argument and `--from-file` flag with a patch file (JSON Merge Patch) | MUST | |
-| REQ-CIT-080 | `dcm catalog item update` MUST display the updated catalog item in the configured output format | MUST | |
 | REQ-CIT-090 | `dcm catalog item delete` MUST accept a `CATALOG_ITEM_ID` positional argument and delete the catalog item | MUST | |
 | REQ-CIT-100 | `dcm catalog item delete` MUST display a success message in the format `Catalog item "<catalogItemId>" deleted successfully.` | MUST | |
 | REQ-CIT-110 | All catalog item commands MUST use the generated Catalog Manager client | MUST | |
-| REQ-CIT-120 | `--from-file` MUST be required for `create` and `update` commands | MUST | |
-| REQ-CIT-130 | Missing positional arguments for `get`, `update`, `delete` MUST result in a usage error (exit code 2) | MUST | |
+| REQ-CIT-120 | `--from-file` MUST be required for `create` command | MUST | |
+| REQ-CIT-130 | Missing positional arguments for `get`, `delete` MUST result in a usage error (exit code 2) | MUST | |
 
 #### Table Output Columns
 
@@ -713,15 +711,6 @@ my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  Small Container   2026-0
 - **Then** a GET request MUST be sent to `/api/v1alpha1/catalog-items/my-catalog-item`
 - **And** the catalog item MUST be displayed in the configured output format
 
-##### AC-CIT-060: Update catalog item
-
-- **Validates:** REQ-CIT-070, REQ-CIT-080
-- **Given** a catalog item with ID `my-catalog-item` exists
-- **And** a valid patch file `patch.yaml`
-- **When** `dcm catalog item update my-catalog-item --from-file patch.yaml` is invoked
-- **Then** a PATCH request MUST be sent to `/api/v1alpha1/catalog-items/my-catalog-item`
-- **And** the updated catalog item MUST be displayed in the configured output format
-
 ##### AC-CIT-070: Delete catalog item
 
 - **Validates:** REQ-CIT-090, REQ-CIT-100
@@ -757,15 +746,6 @@ my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  Small Container   2026-0
 - **Validates:** REQ-CIT-060, REQ-XC-ERR-010
 - **Given** no catalog item with ID `nonexistent` exists
 - **When** `dcm catalog item get nonexistent` is invoked
-- **Then** the API returns a 404 with RFC 7807 body
-- **And** the CLI MUST display the error in the configured output format and exit with code 1
-
-##### AC-CIT-120: Update non-existent catalog item
-
-- **Validates:** REQ-CIT-070, REQ-XC-ERR-010
-- **Given** no catalog item with ID `nonexistent` exists
-- **And** a valid patch file `patch.yaml`
-- **When** `dcm catalog item update nonexistent --from-file patch.yaml` is invoked
 - **Then** the API returns a 404 with RFC 7807 body
 - **And** the CLI MUST display the error in the configured output format and exit with code 1
 
@@ -1317,7 +1297,7 @@ provides reliable HTTP mocking without external dependencies.
 | REQ-OUT-NNN | 4.3: Output Formatting | 10 |
 | REQ-POL-NNN | 4.4: Policy Commands | 13 |
 | REQ-CST-NNN | 4.5: Catalog Service-Type Commands | 5 |
-| REQ-CIT-NNN | 4.6: Catalog Item Commands | 13 |
+| REQ-CIT-NNN | 4.6: Catalog Item Commands | 11 |
 | REQ-CIN-NNN | 4.7: Catalog Instance Commands | 11 |
 | REQ-VER-NNN | 4.8: Version Command | 3 |
 | REQ-XC-ERR-NNN | 5.1: Error Handling | 6 |

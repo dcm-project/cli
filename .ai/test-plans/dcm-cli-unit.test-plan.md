@@ -439,6 +439,51 @@ test classes. Instead:
 - **When:** `dcm policy delete` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
 
+### TC-U100: List policies returns empty list
+
+- **Requirement:** REQ-POL-040, REQ-POL-050
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an empty policy list (`{"results":[],"nextPageToken":""}`)
+- **When:** `dcm policy list` is executed
+- **Then:** An empty result is displayed (empty table with headers only for table format, empty array for JSON, empty list for YAML)
+
+### TC-U101: Get non-existent policy
+
+- **Requirement:** REQ-POL-060, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for policy ID `nonexistent`
+- **When:** `dcm policy get nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U102: Update non-existent policy
+
+- **Requirement:** REQ-POL-070, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A valid patch file AND a mock server returning 404 with RFC 7807 body for policy ID `nonexistent`
+- **When:** `dcm policy update nonexistent --from-file patch.yaml` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U103: Delete non-existent policy
+
+- **Requirement:** REQ-POL-090, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for policy ID `nonexistent`
+- **When:** `dcm policy delete nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U104: Create policy server error
+
+- **Requirement:** REQ-POL-010, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A valid policy YAML file AND a mock server returning 500 with RFC 7807 body
+- **When:** `dcm policy create --from-file policy.yaml` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
 ### TC-U041: Policy table output columns
 
 - **Requirement:** REQ-OUT-050
@@ -492,6 +537,24 @@ test classes. Instead:
 - **Given:** No positional argument is provided
 - **When:** `dcm catalog service-type get` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
+
+### TC-U105: List service types returns empty list
+
+- **Requirement:** REQ-CST-010, REQ-CST-020
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an empty service type list (`{"results":[],"nextPageToken":""}`)
+- **When:** `dcm catalog service-type list` is executed
+- **Then:** An empty result is displayed (empty table with headers only for table format, empty array for JSON, empty list for YAML)
+
+### TC-U106: Get non-existent service type
+
+- **Requirement:** REQ-CST-030, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for service type ID `nonexistent`
+- **When:** `dcm catalog service-type get nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
 
 ---
 
@@ -600,6 +663,51 @@ test classes. Instead:
 - **When:** `dcm catalog item delete` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
 
+### TC-U107: List catalog items returns empty list
+
+- **Requirement:** REQ-CIT-040, REQ-CIT-050
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an empty catalog item list (`{"results":[],"nextPageToken":""}`)
+- **When:** `dcm catalog item list` is executed
+- **Then:** An empty result is displayed (empty table with headers only for table format, empty array for JSON, empty list for YAML)
+
+### TC-U108: Get non-existent catalog item
+
+- **Requirement:** REQ-CIT-060, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for catalog item ID `nonexistent`
+- **When:** `dcm catalog item get nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U109: Update non-existent catalog item
+
+- **Requirement:** REQ-CIT-070, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A valid patch file AND a mock server returning 404 with RFC 7807 body for catalog item ID `nonexistent`
+- **When:** `dcm catalog item update nonexistent --from-file patch.yaml` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U110: Delete non-existent catalog item
+
+- **Requirement:** REQ-CIT-090, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for catalog item ID `nonexistent`
+- **When:** `dcm catalog item delete nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U111: Create catalog item server error
+
+- **Requirement:** REQ-CIT-010, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A valid catalog item YAML file AND a mock server returning 500 with RFC 7807 body
+- **When:** `dcm catalog item create --from-file item.yaml` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
 ### TC-U057: Catalog item table output columns
 
 - **Requirement:** REQ-OUT-050
@@ -698,6 +806,42 @@ test classes. Instead:
 - **Given:** No positional argument is provided
 - **When:** `dcm catalog instance delete` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
+
+### TC-U112: List instances returns empty list
+
+- **Requirement:** REQ-CIN-040, REQ-CIN-050
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an empty instance list (`{"results":[],"nextPageToken":""}`)
+- **When:** `dcm catalog instance list` is executed
+- **Then:** An empty result is displayed (empty table with headers only for table format, empty array for JSON, empty list for YAML)
+
+### TC-U113: Get non-existent instance
+
+- **Requirement:** REQ-CIN-060, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for instance ID `nonexistent`
+- **When:** `dcm catalog instance get nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U114: Delete non-existent instance
+
+- **Requirement:** REQ-CIN-070, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for instance ID `nonexistent`
+- **When:** `dcm catalog instance delete nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U115: Create instance server error
+
+- **Requirement:** REQ-CIN-010, REQ-XC-ERR-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A valid instance YAML file AND a mock server returning 500 with RFC 7807 body
+- **When:** `dcm catalog instance create --from-file instance.yaml` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
 
 ### TC-U079: Instance table output columns
 

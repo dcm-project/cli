@@ -501,6 +501,47 @@ my-policy   Require CPU Limits  GLOBAL  100       true     2026-03-09T10:00:00Z
 - **When** `dcm policy get` is invoked
 - **Then** the CLI MUST exit with code 2 and display a usage error
 
+##### AC-POL-140: List policies returns empty list
+
+- **Validates:** REQ-POL-040, REQ-POL-050
+- **Given** no policies exist in the system
+- **When** `dcm policy list` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/policies`
+- **And** an empty result MUST be displayed (empty table with headers only, or empty JSON array/YAML list)
+
+##### AC-POL-150: Get non-existent policy
+
+- **Validates:** REQ-POL-060, REQ-XC-ERR-010
+- **Given** no policy with ID `nonexistent` exists
+- **When** `dcm policy get nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-POL-160: Update non-existent policy
+
+- **Validates:** REQ-POL-070, REQ-XC-ERR-010
+- **Given** no policy with ID `nonexistent` exists
+- **And** a valid patch file `patch.yaml`
+- **When** `dcm policy update nonexistent --from-file patch.yaml` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-POL-170: Delete non-existent policy
+
+- **Validates:** REQ-POL-090, REQ-XC-ERR-010
+- **Given** no policy with ID `nonexistent` exists
+- **When** `dcm policy delete nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-POL-180: Create policy server error
+
+- **Validates:** REQ-POL-010, REQ-XC-ERR-010
+- **Given** a valid policy file `policy.yaml`
+- **When** `dcm policy create --from-file policy.yaml` is invoked
+- **And** the API returns a server-side error (e.g., 500 Internal Server Error or 409 Conflict) with RFC 7807 body
+- **Then** the CLI MUST display the error in the configured output format and exit with code 1
+
 ##### AC-POL-130: Generated client usage
 
 - **Validates:** REQ-POL-110
@@ -566,6 +607,22 @@ Out of scope: service-type create/update/delete (managed by system).
 - **Given** no positional argument is provided
 - **When** `dcm catalog service-type get` is invoked
 - **Then** the CLI MUST exit with code 2 and display a usage error
+
+##### AC-CST-060: List service types returns empty list
+
+- **Validates:** REQ-CST-010, REQ-CST-020
+- **Given** no service types exist in the system
+- **When** `dcm catalog service-type list` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/service-types`
+- **And** an empty result MUST be displayed (empty table with headers only, or empty JSON array/YAML list)
+
+##### AC-CST-070: Get non-existent service type
+
+- **Validates:** REQ-CST-030, REQ-XC-ERR-010
+- **Given** no service type with ID `nonexistent` exists
+- **When** `dcm catalog service-type get nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
 
 ##### AC-CST-050: Generated client usage
 
@@ -687,6 +744,47 @@ my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  Small Container   2026-0
 - **When** `dcm catalog item get` is invoked
 - **Then** the CLI MUST exit with code 2 and display a usage error
 
+##### AC-CIT-100: List catalog items returns empty list
+
+- **Validates:** REQ-CIT-040, REQ-CIT-050
+- **Given** no catalog items exist in the system
+- **When** `dcm catalog item list` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/catalog-items`
+- **And** an empty result MUST be displayed (empty table with headers only, or empty JSON array/YAML list)
+
+##### AC-CIT-110: Get non-existent catalog item
+
+- **Validates:** REQ-CIT-060, REQ-XC-ERR-010
+- **Given** no catalog item with ID `nonexistent` exists
+- **When** `dcm catalog item get nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-CIT-120: Update non-existent catalog item
+
+- **Validates:** REQ-CIT-070, REQ-XC-ERR-010
+- **Given** no catalog item with ID `nonexistent` exists
+- **And** a valid patch file `patch.yaml`
+- **When** `dcm catalog item update nonexistent --from-file patch.yaml` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-CIT-130: Delete non-existent catalog item
+
+- **Validates:** REQ-CIT-090, REQ-XC-ERR-010
+- **Given** no catalog item with ID `nonexistent` exists
+- **When** `dcm catalog item delete nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-CIT-140: Create catalog item server error
+
+- **Validates:** REQ-CIT-010, REQ-XC-ERR-010
+- **Given** a valid catalog item file `item.yaml`
+- **When** `dcm catalog item create --from-file item.yaml` is invoked
+- **And** the API returns a server-side error (e.g., 500 Internal Server Error or 409 Conflict) with RFC 7807 body
+- **Then** the CLI MUST display the error in the configured output format and exit with code 1
+
 #### Dependencies
 
 Depends on Topic 1 (CLI Framework), Topic 2 (Configuration), Topic 3 (Output
@@ -789,6 +887,38 @@ my-instance   c3d4e5f6-a7b8-9012-cdef-123456789012  My App Instance   my-catalog
 - **Given** no positional argument is provided
 - **When** `dcm catalog instance get` is invoked
 - **Then** the CLI MUST exit with code 2 and display a usage error
+
+##### AC-CIN-090: List instances returns empty list
+
+- **Validates:** REQ-CIN-040, REQ-CIN-050
+- **Given** no instances exist in the system
+- **When** `dcm catalog instance list` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/catalog-item-instances`
+- **And** an empty result MUST be displayed (empty table with headers only, or empty JSON array/YAML list)
+
+##### AC-CIN-100: Get non-existent instance
+
+- **Validates:** REQ-CIN-060, REQ-XC-ERR-010
+- **Given** no instance with ID `nonexistent` exists
+- **When** `dcm catalog instance get nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-CIN-110: Delete non-existent instance
+
+- **Validates:** REQ-CIN-070, REQ-XC-ERR-010
+- **Given** no instance with ID `nonexistent` exists
+- **When** `dcm catalog instance delete nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-CIN-120: Create instance server error
+
+- **Validates:** REQ-CIN-010, REQ-XC-ERR-010
+- **Given** a valid instance file `instance.yaml`
+- **When** `dcm catalog instance create --from-file instance.yaml` is invoked
+- **And** the API returns a server-side error (e.g., 500 Internal Server Error or 409 Conflict) with RFC 7807 body
+- **Then** the CLI MUST display the error in the configured output format and exit with code 1
 
 #### Dependencies
 

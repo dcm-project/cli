@@ -309,7 +309,7 @@ Out of scope: color output, custom column selection, template-based formatting.
 | REQ-OUT-020 | The default output format MUST be `table` | MUST | |
 | REQ-OUT-030 | The output format MUST be selectable via `--output`/`-o` flag | MUST | |
 | REQ-OUT-040 | The `Formatter` interface MUST support `FormatOne` (single resource), `FormatList` (resource list with pagination), and `FormatMessage` (status message) | MUST | |
-| REQ-OUT-050 | Table output for list commands MUST display resources in a tabular format with column headers | MUST | |
+| REQ-OUT-050 | Table output MUST display resources in a tabular format with fixed column headers per resource type. Columns MUST NOT vary based on response content. If a field is absent from a response, an empty cell MUST be displayed. | MUST | |
 | REQ-OUT-060 | JSON output MUST produce valid, parseable JSON | MUST | |
 | REQ-OUT-070 | YAML output MUST produce valid, parseable YAML | MUST | |
 | REQ-OUT-080 | For JSON/YAML list output, `next_page_token` MUST be included in the response object when present | MUST | |
@@ -397,7 +397,7 @@ Out of scope: policy validation/dry-run, policy diff, bulk policy operations.
 | REQ-POL-070 | `dcm policy update` MUST accept a `POLICY_ID` positional argument and `--from-file` flag with a patch file (JSON Merge Patch - RFC 7396) | MUST | |
 | REQ-POL-080 | `dcm policy update` MUST display the updated policy in the configured output format | MUST | |
 | REQ-POL-090 | `dcm policy delete` MUST accept a `POLICY_ID` positional argument and delete the policy | MUST | |
-| REQ-POL-100 | `dcm policy delete` MUST display a success message on deletion | MUST | |
+| REQ-POL-100 | `dcm policy delete` MUST display a success message in the format `Policy "<policyId>" deleted successfully.` | MUST | |
 | REQ-POL-110 | `dcm policy create` and `dcm policy update` MUST use the generated Policy Manager client | MUST | |
 | REQ-POL-120 | `--from-file` MUST be required for `create` and `update` commands | MUST | |
 | REQ-POL-130 | Missing `POLICY_ID` argument for `get`, `update`, `delete` MUST result in a usage error (exit code 2) | MUST | |
@@ -661,7 +661,7 @@ Out of scope: catalog item validation, catalog item versioning.
 | REQ-CIT-070 | `dcm catalog item update` MUST accept a `CATALOG_ITEM_ID` positional argument and `--from-file` flag with a patch file (JSON Merge Patch) | MUST | |
 | REQ-CIT-080 | `dcm catalog item update` MUST display the updated catalog item in the configured output format | MUST | |
 | REQ-CIT-090 | `dcm catalog item delete` MUST accept a `CATALOG_ITEM_ID` positional argument and delete the catalog item | MUST | |
-| REQ-CIT-100 | `dcm catalog item delete` MUST display a success message on deletion | MUST | |
+| REQ-CIT-100 | `dcm catalog item delete` MUST display a success message in the format `Catalog item "<catalogItemId>" deleted successfully.` | MUST | |
 | REQ-CIT-110 | All catalog item commands MUST use the generated Catalog Manager client | MUST | |
 | REQ-CIT-120 | `--from-file` MUST be required for `create` and `update` commands | MUST | |
 | REQ-CIT-130 | Missing positional arguments for `get`, `update`, `delete` MUST result in a usage error (exit code 2) | MUST | |
@@ -728,7 +728,7 @@ my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  Small Container   2026-0
 - **Given** a catalog item with ID `my-catalog-item` exists
 - **When** `dcm catalog item delete my-catalog-item` is invoked
 - **Then** a DELETE request MUST be sent to `/api/v1alpha1/catalog-items/my-catalog-item`
-- **And** a success message MUST be displayed
+- **And** the message `Catalog item "my-catalog-item" deleted successfully.` MUST be displayed
 
 ##### AC-CIT-080: Create without --from-file
 
@@ -814,7 +814,7 @@ instance logs.
 | REQ-CIN-050 | `dcm catalog instance list` MUST display instances in the configured output format | MUST | |
 | REQ-CIN-060 | `dcm catalog instance get` MUST accept an `INSTANCE_ID` positional argument and display the instance | MUST | |
 | REQ-CIN-070 | `dcm catalog instance delete` MUST accept an `INSTANCE_ID` positional argument and delete the instance | MUST | |
-| REQ-CIN-080 | `dcm catalog instance delete` MUST display a success message on deletion | MUST | |
+| REQ-CIN-080 | `dcm catalog instance delete` MUST display a success message in the format `Catalog item instance "<instanceId>" deleted successfully.` | MUST | |
 | REQ-CIN-090 | All catalog instance commands MUST use the generated Catalog Manager client | MUST | |
 | REQ-CIN-100 | `--from-file` MUST be required for `create` | MUST | |
 | REQ-CIN-110 | Missing positional arguments for `get`, `delete` MUST result in a usage error (exit code 2) | MUST | |
@@ -872,7 +872,7 @@ my-instance   c3d4e5f6-a7b8-9012-cdef-123456789012  My App Instance   my-catalog
 - **Given** an instance with ID `my-instance` exists
 - **When** `dcm catalog instance delete my-instance` is invoked
 - **Then** a DELETE request MUST be sent to `/api/v1alpha1/catalog-item-instances/my-instance`
-- **And** a success message MUST be displayed
+- **And** the message `Catalog item instance "my-instance" deleted successfully.` MUST be displayed
 
 ##### AC-CIN-070: Create without --from-file
 
@@ -1036,7 +1036,7 @@ Depends on Topic 1 (CLI Framework).
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
 | REQ-XC-INP-010 | The `--from-file` flag MUST accept both YAML and JSON files | MUST | |
-| REQ-XC-INP-020 | The CLI MUST detect the file format based on content (not file extension) | MUST | |
+| REQ-XC-INP-020 | The CLI MUST detect the file format based on content (not file extension). Format detection MUST attempt YAML parsing first (since valid JSON is also valid YAML). Files with any extension are accepted. | MUST | |
 | REQ-XC-INP-030 | Invalid or unreadable files MUST result in a clear error message and exit code 1 | MUST | |
 
 #### Acceptance Criteria
@@ -1072,7 +1072,7 @@ Depends on Topic 1 (CLI Framework).
 | REQ-XC-CLI-010 | The CLI MUST use the generated Policy Manager client (`github.com/dcm-project/policy-manager/pkg/client`) for all policy operations | MUST | |
 | REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client (`github.com/dcm-project/catalog-manager/pkg/client`) for all catalog operations | MUST | |
 | REQ-XC-CLI-030 | Both clients MUST be instantiated with the API Gateway URL appended with `/api/v1alpha1` | MUST | |
-| REQ-XC-CLI-040 | Both clients MUST respect the configured request timeout | MUST | |
+| REQ-XC-CLI-040 | Both clients MUST respect the configured request timeout. The timeout applies to the HTTP request deadline (context timeout) only; file I/O and output formatting are not subject to the timeout. | MUST | |
 | REQ-XC-CLI-050 | Both clients MUST use a custom HTTP client with TLS transport when the API Gateway URL uses `https://` | MUST | |
 
 #### Acceptance Criteria
@@ -1091,6 +1091,7 @@ Depends on Topic 1 (CLI Framework).
 - **Given** the timeout is configured to 30 seconds
 - **When** a request is made via the generated client
 - **Then** the request context MUST have a 30-second deadline
+- **And** the timeout MUST NOT apply to file I/O or output formatting
 
 ##### AC-XC-CLI-030: TLS transport for HTTPS
 
@@ -1307,49 +1308,7 @@ provides reliable HTTP mocking without external dependencies.
 
 ---
 
-## 8. Spec Clarifications
-
-### SC-001: Input file format detection
-
-**Related requirements:** REQ-XC-INP-010, REQ-XC-INP-020
-
-The `--from-file` flag accepts files with any extension. Format detection MUST
-attempt YAML parsing first (since valid JSON is also valid YAML). The file
-content, not the extension, determines the format.
-
-### SC-002: Policy delete success message format
-
-**Related requirements:** REQ-POL-100
-
-The delete success message MUST follow the format:
-`<ResourceType> "<resourceId>" deleted successfully.`
-
-Examples:
-- `Policy "my-policy" deleted successfully.`
-- `Catalog item "my-item" deleted successfully.`
-- `Catalog item instance "my-instance" deleted successfully.`
-
-This format applies to all delete commands across resource types.
-
-### SC-003: Table column selection per resource type
-
-**Related requirements:** REQ-OUT-050
-
-Each resource type has its own table column set. The columns are defined in
-the spec and MUST NOT vary based on response content. If a field is absent from
-a response, an empty cell MUST be displayed.
-
-### SC-004: Timeout applies to HTTP request only
-
-**Related requirements:** REQ-XC-CLI-040
-
-The `--timeout` value applies to the HTTP request deadline (context timeout). It
-does not include file I/O or output formatting time. File reads and output
-rendering are not subject to the timeout.
-
----
-
-## 9. Requirement ID Index
+## 8. Requirement ID Index
 
 | Prefix | Topic | Count |
 |--------|-------|-------|

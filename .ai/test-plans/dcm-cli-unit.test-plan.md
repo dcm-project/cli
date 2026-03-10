@@ -1271,7 +1271,7 @@ index (tested transitively through higher-level behavioural tests).
 
 ---
 
-## Notes
+## Implementation Guidelines
 
 - **Table-driven tests:** TC-U008 (environment variables) should be implemented as Ginkgo `DescribeTable` / `Entry` for conciseness.
 - **Mock HTTP servers:** Command tests (TC-U026–TC-U085) use `net/http/httptest.NewServer` to mock generated client HTTP calls. The mock server validates request method, path, and query parameters, then returns canned responses.

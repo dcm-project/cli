@@ -36,6 +36,7 @@ test classes. Instead:
 ### TC-U001: Load configuration from config file
 
 - **Requirement:** REQ-CFG-010
+- **Acceptance Criteria:** AC-CFG-010
 - **Type:** Unit
 - **Given:** A config file exists at a temporary path with `api-gateway-url: http://custom:9080`
 - **When:** Config is loaded with `--config` pointing to that file
@@ -44,6 +45,7 @@ test classes. Instead:
 ### TC-U002: Environment variable overrides config file
 
 - **Requirement:** REQ-CFG-030, REQ-CFG-040
+- **Acceptance Criteria:** AC-CFG-030, AC-CFG-040
 - **Type:** Unit
 - **Given:** A config file has `api-gateway-url: http://file:9080` AND `DCM_API_GATEWAY_URL=http://env:9080` is set
 - **When:** Config is loaded without `--api-gateway-url` flag
@@ -52,6 +54,7 @@ test classes. Instead:
 ### TC-U003: CLI flag overrides environment variable and config file
 
 - **Requirement:** REQ-CFG-040
+- **Acceptance Criteria:** AC-CFG-040
 - **Type:** Unit
 - **Given:** `DCM_API_GATEWAY_URL=http://env:9080` is set AND config file has `api-gateway-url: http://file:9080`
 - **When:** Config is loaded with `--api-gateway-url http://flag:9080`
@@ -60,6 +63,7 @@ test classes. Instead:
 ### TC-U004: Default values applied when no config specified
 
 - **Requirement:** REQ-CFG-050
+- **Acceptance Criteria:** AC-CFG-050
 - **Type:** Unit
 - **Given:** No config file exists AND no environment variables are set AND no flags are provided
 - **When:** Config is loaded
@@ -68,6 +72,7 @@ test classes. Instead:
 ### TC-U005: Missing config file does not cause failure
 
 - **Requirement:** REQ-CFG-070
+- **Acceptance Criteria:** AC-CFG-060
 - **Type:** Unit
 - **Given:** No config file exists at the default path `~/.dcm/config.yaml`
 - **When:** Config is loaded
@@ -76,6 +81,7 @@ test classes. Instead:
 ### TC-U006: Custom config file path via --config flag
 
 - **Requirement:** REQ-CFG-020
+- **Acceptance Criteria:** AC-CFG-020
 - **Type:** Unit
 - **Given:** A config file exists at `/tmp/dcm-test.yaml` with `timeout: 60`
 - **When:** Config is loaded with `--config /tmp/dcm-test.yaml`
@@ -84,6 +90,7 @@ test classes. Instead:
 ### TC-U007: Custom config file path via DCM_CONFIG environment variable
 
 - **Requirement:** REQ-CFG-020
+- **Acceptance Criteria:** AC-CFG-020
 - **Type:** Unit
 - **Given:** A config file exists at `/tmp/dcm-test.yaml` AND `DCM_CONFIG=/tmp/dcm-test.yaml` is set
 - **When:** Config is loaded without `--config` flag
@@ -92,6 +99,7 @@ test classes. Instead:
 ### TC-U008: All environment variables are supported
 
 - **Requirement:** REQ-CFG-030
+- **Acceptance Criteria:** AC-CFG-030
 - **Type:** Unit (table-driven)
 - **Given:** Each environment variable is set individually:
 
@@ -118,6 +126,7 @@ test classes. Instead:
 ### TC-U009: Table output for single resource
 
 - **Requirement:** REQ-OUT-050
+- **Acceptance Criteria:** AC-OUT-010
 - **Type:** Unit
 - **Given:** A single policy resource with known field values
 - **When:** `FormatOne` is called with format `table`
@@ -126,6 +135,7 @@ test classes. Instead:
 ### TC-U010: Table output for resource list
 
 - **Requirement:** REQ-OUT-050
+- **Acceptance Criteria:** AC-OUT-010
 - **Type:** Unit
 - **Given:** A list of 3 policy resources
 - **When:** `FormatList` is called with format `table` and empty `nextPageToken`
@@ -134,6 +144,7 @@ test classes. Instead:
 ### TC-U011: JSON output produces valid JSON
 
 - **Requirement:** REQ-OUT-060
+- **Acceptance Criteria:** AC-OUT-020
 - **Type:** Unit
 - **Given:** A single resource
 - **When:** `FormatOne` is called with format `json`
@@ -142,6 +153,7 @@ test classes. Instead:
 ### TC-U012: YAML output produces valid YAML
 
 - **Requirement:** REQ-OUT-070
+- **Acceptance Criteria:** AC-OUT-030
 - **Type:** Unit
 - **Given:** A single resource
 - **When:** `FormatOne` is called with format `yaml`
@@ -150,6 +162,7 @@ test classes. Instead:
 ### TC-U013: Pagination hint in table output
 
 - **Requirement:** REQ-OUT-090
+- **Acceptance Criteria:** AC-OUT-040
 - **Type:** Unit
 - **Given:** A list response with `nextPageToken = "eyJvZmZzZXQiOjJ9"`
 - **When:** `FormatList` is called with format `table`
@@ -158,6 +171,7 @@ test classes. Instead:
 ### TC-U014: Pagination token in JSON output
 
 - **Requirement:** REQ-OUT-080
+- **Acceptance Criteria:** AC-OUT-050
 - **Type:** Unit
 - **Given:** A list response with `nextPageToken = "abc123"`
 - **When:** `FormatList` is called with format `json`
@@ -166,6 +180,7 @@ test classes. Instead:
 ### TC-U015: Pagination token in YAML output
 
 - **Requirement:** REQ-OUT-080
+- **Acceptance Criteria:** AC-OUT-050
 - **Type:** Unit
 - **Given:** A list response with `nextPageToken = "abc123"`
 - **When:** `FormatList` is called with format `yaml`
@@ -174,6 +189,7 @@ test classes. Instead:
 ### TC-U016: No pagination hint when nextPageToken is empty
 
 - **Requirement:** REQ-OUT-090
+- **Acceptance Criteria:** AC-OUT-040
 - **Type:** Unit
 - **Given:** A list response with no `nextPageToken`
 - **When:** `FormatList` is called with format `table`
@@ -182,6 +198,7 @@ test classes. Instead:
 ### TC-U017: Invalid output format rejected
 
 - **Requirement:** REQ-OUT-100
+- **Acceptance Criteria:** AC-OUT-060
 - **Type:** Unit
 - **Given:** `--output invalid` is provided
 - **When:** The CLI processes the flag
@@ -190,6 +207,7 @@ test classes. Instead:
 ### TC-U018: FormatMessage displays status message
 
 - **Requirement:** REQ-OUT-040
+- **Acceptance Criteria:** AC-OUT-070
 - **Type:** Unit
 - **Given:** A status message `Policy "my-policy" deleted successfully.`
 - **When:** `FormatMessage` is called
@@ -204,6 +222,7 @@ test classes. Instead:
 ### TC-U019: Root command registers all subcommands
 
 - **Requirement:** REQ-CLI-030
+- **Acceptance Criteria:** AC-CLI-030
 - **Type:** Unit
 - **Given:** The root command is created via `NewRootCommand()`
 - **When:** `dcm --help` is executed
@@ -212,6 +231,7 @@ test classes. Instead:
 ### TC-U020: Catalog command registers subcommand groups
 
 - **Requirement:** REQ-CLI-040
+- **Acceptance Criteria:** AC-CLI-030
 - **Type:** Unit
 - **Given:** The root command is created
 - **When:** `dcm catalog --help` is executed
@@ -220,6 +240,7 @@ test classes. Instead:
 ### TC-U021: Global flags are registered
 
 - **Requirement:** REQ-CLI-050
+- **Acceptance Criteria:** AC-CLI-020
 - **Type:** Unit
 - **Given:** The root command is created
 - **When:** `dcm --help` is executed
@@ -228,6 +249,7 @@ test classes. Instead:
 ### TC-U022: Exit code 0 on success
 
 - **Requirement:** REQ-CLI-060
+- **Acceptance Criteria:** AC-CLI-040
 - **Type:** Unit
 - **Given:** A command completes successfully (e.g., `dcm version`)
 - **When:** The process exits
@@ -236,6 +258,7 @@ test classes. Instead:
 ### TC-U023: Exit code 2 on usage error
 
 - **Requirement:** REQ-CLI-060
+- **Acceptance Criteria:** AC-CLI-060
 - **Type:** Unit
 - **Given:** A command is invoked with missing required arguments (e.g., `dcm policy get` without POLICY_ID)
 - **When:** The process exits
@@ -250,6 +273,7 @@ test classes. Instead:
 ### TC-U024: Version displays all build information
 
 - **Requirement:** REQ-VER-010
+- **Acceptance Criteria:** AC-VER-010
 - **Type:** Unit
 - **Given:** Version info is set to `Version="1.0.0"`, `Commit="abc1234"`, `BuildTime="2026-03-09T10:00:00Z"`
 - **When:** `dcm version` is executed
@@ -262,6 +286,7 @@ test classes. Instead:
 ### TC-U025: Default version values when not built with ldflags
 
 - **Requirement:** REQ-VER-030
+- **Acceptance Criteria:** AC-VER-030
 - **Type:** Unit
 - **Given:** No ldflags are set (default values)
 - **When:** `dcm version` is executed
@@ -278,6 +303,7 @@ test classes. Instead:
 ### TC-U026: Create policy from YAML file
 
 - **Requirement:** REQ-POL-010, REQ-POL-030, REQ-POL-110
+- **Acceptance Criteria:** AC-POL-010, AC-POL-130
 - **Type:** Unit
 - **Transitively covers:** TC-U060 (YAML file parsing), TC-U066 (generated Policy Manager client usage)
 - **Given:** A valid policy YAML file AND a mock server returning 201 with a policy response
@@ -287,6 +313,7 @@ test classes. Instead:
 ### TC-U027: Create policy from JSON file
 
 - **Requirement:** REQ-POL-010
+- **Acceptance Criteria:** AC-POL-030
 - **Type:** Unit
 - **Transitively covers:** TC-U061 (JSON file parsing)
 - **Given:** A valid policy JSON file AND a mock server returning 201
@@ -296,6 +323,7 @@ test classes. Instead:
 ### TC-U028: Create policy with client-specified ID
 
 - **Requirement:** REQ-POL-020
+- **Acceptance Criteria:** AC-POL-020
 - **Type:** Unit
 - **Given:** A valid policy file AND a mock server
 - **When:** `dcm policy create --from-file policy.yaml --id my-policy` is executed
@@ -304,6 +332,7 @@ test classes. Instead:
 ### TC-U029: Create policy without --from-file fails
 
 - **Requirement:** REQ-POL-120
+- **Acceptance Criteria:** AC-POL-110
 - **Type:** Unit
 - **Given:** No `--from-file` flag is provided
 - **When:** `dcm policy create` is executed
@@ -312,6 +341,7 @@ test classes. Instead:
 ### TC-U030: List policies
 
 - **Requirement:** REQ-POL-040, REQ-POL-050
+- **Acceptance Criteria:** AC-POL-040
 - **Type:** Unit
 - **Transitively covers:** TC-U066 (generated Policy Manager client usage)
 - **Given:** A mock server returning 200 with a list of policies
@@ -321,6 +351,7 @@ test classes. Instead:
 ### TC-U031: List policies with filter
 
 - **Requirement:** REQ-POL-040
+- **Acceptance Criteria:** AC-POL-050
 - **Type:** Unit
 - **Given:** A mock server
 - **When:** `dcm policy list --filter "policy_type='GLOBAL'"` is executed
@@ -329,6 +360,7 @@ test classes. Instead:
 ### TC-U032: List policies with order-by
 
 - **Requirement:** REQ-POL-040
+- **Acceptance Criteria:** AC-POL-060
 - **Type:** Unit
 - **Given:** A mock server
 - **When:** `dcm policy list --order-by "priority asc"` is executed
@@ -337,6 +369,7 @@ test classes. Instead:
 ### TC-U033: List policies with pagination
 
 - **Requirement:** REQ-POL-040
+- **Acceptance Criteria:** AC-POL-070
 - **Type:** Unit
 - **Transitively covers:** TC-U069 (pagination flags present), TC-U070 (pagination parameter pass-through)
 - **Given:** A mock server
@@ -346,6 +379,7 @@ test classes. Instead:
 ### TC-U034: Get policy
 
 - **Requirement:** REQ-POL-060
+- **Acceptance Criteria:** AC-POL-080
 - **Type:** Unit
 - **Given:** A mock server returning 200 with a policy for id `my-policy`
 - **When:** `dcm policy get my-policy` is executed
@@ -354,6 +388,7 @@ test classes. Instead:
 ### TC-U035: Get policy without POLICY_ID fails
 
 - **Requirement:** REQ-POL-130
+- **Acceptance Criteria:** AC-POL-120
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm policy get` is executed
@@ -362,6 +397,7 @@ test classes. Instead:
 ### TC-U036: Update policy
 
 - **Requirement:** REQ-POL-070, REQ-POL-080
+- **Acceptance Criteria:** AC-POL-090
 - **Type:** Unit
 - **Given:** A valid patch YAML file AND a mock server returning 200 with the updated policy
 - **When:** `dcm policy update my-policy --from-file patch.yaml` is executed
@@ -370,6 +406,7 @@ test classes. Instead:
 ### TC-U037: Update policy without --from-file fails
 
 - **Requirement:** REQ-POL-120
+- **Acceptance Criteria:** AC-POL-110
 - **Type:** Unit
 - **Given:** No `--from-file` flag is provided
 - **When:** `dcm policy update my-policy` is executed
@@ -378,6 +415,7 @@ test classes. Instead:
 ### TC-U038: Update policy without POLICY_ID fails
 
 - **Requirement:** REQ-POL-130
+- **Acceptance Criteria:** AC-POL-120
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm policy update` is executed
@@ -386,6 +424,7 @@ test classes. Instead:
 ### TC-U039: Delete policy
 
 - **Requirement:** REQ-POL-090, REQ-POL-100
+- **Acceptance Criteria:** AC-POL-100
 - **Type:** Unit
 - **Given:** A mock server returning 204 for delete
 - **When:** `dcm policy delete my-policy` is executed
@@ -394,6 +433,7 @@ test classes. Instead:
 ### TC-U040: Delete policy without POLICY_ID fails
 
 - **Requirement:** REQ-POL-130
+- **Acceptance Criteria:** AC-POL-120
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm policy delete` is executed
@@ -402,6 +442,7 @@ test classes. Instead:
 ### TC-U100: List policies returns empty list
 
 - **Requirement:** REQ-POL-040, REQ-POL-050
+- **Acceptance Criteria:** AC-POL-140
 - **Type:** Unit
 - **Given:** A mock server returning 200 with an empty policy list (`{"results":[],"nextPageToken":""}`)
 - **When:** `dcm policy list` is executed
@@ -410,6 +451,7 @@ test classes. Instead:
 ### TC-U101: Get non-existent policy
 
 - **Requirement:** REQ-POL-060, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-POL-150, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for policy ID `nonexistent`
 - **When:** `dcm policy get nonexistent` is executed
@@ -418,6 +460,7 @@ test classes. Instead:
 ### TC-U102: Update non-existent policy
 
 - **Requirement:** REQ-POL-070, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-POL-160, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A valid patch file AND a mock server returning 404 with RFC 7807 body for policy ID `nonexistent`
 - **When:** `dcm policy update nonexistent --from-file patch.yaml` is executed
@@ -426,6 +469,7 @@ test classes. Instead:
 ### TC-U103: Delete non-existent policy
 
 - **Requirement:** REQ-POL-090, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-POL-170, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for policy ID `nonexistent`
 - **When:** `dcm policy delete nonexistent` is executed
@@ -434,6 +478,7 @@ test classes. Instead:
 ### TC-U104: Create policy server error
 
 - **Requirement:** REQ-POL-010, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-POL-180, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A valid policy YAML file AND a mock server returning 500 with RFC 7807 body
 - **When:** `dcm policy create --from-file policy.yaml` is executed
@@ -442,6 +487,7 @@ test classes. Instead:
 ### TC-U041: Policy table output columns
 
 - **Requirement:** REQ-OUT-050
+- **Acceptance Criteria:** AC-OUT-010
 - **Type:** Unit
 - **Given:** A mock server returning a policy with all fields populated
 - **When:** `dcm policy get my-policy` is executed with `--output table`
@@ -457,6 +503,7 @@ test classes. Instead:
 ### TC-U042: List service types
 
 - **Requirement:** REQ-CST-010, REQ-CST-020
+- **Acceptance Criteria:** AC-CST-010
 - **Type:** Unit
 - **Transitively covers:** TC-U067 (generated Catalog Manager client usage)
 - **Given:** A mock server returning 200 with a list of service types
@@ -466,6 +513,7 @@ test classes. Instead:
 ### TC-U043: List service types with pagination
 
 - **Requirement:** REQ-CST-010
+- **Acceptance Criteria:** AC-CST-020
 - **Type:** Unit
 - **Transitively covers:** TC-U069 (pagination flags present)
 - **Given:** A mock server
@@ -475,6 +523,7 @@ test classes. Instead:
 ### TC-U044: Get service type
 
 - **Requirement:** REQ-CST-030
+- **Acceptance Criteria:** AC-CST-030
 - **Type:** Unit
 - **Given:** A mock server returning 200 with a service type
 - **When:** `dcm catalog service-type get my-service-type` is executed
@@ -483,6 +532,7 @@ test classes. Instead:
 ### TC-U045: Get service type without SERVICE_TYPE_ID fails
 
 - **Requirement:** REQ-CST-040
+- **Acceptance Criteria:** AC-CST-040
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm catalog service-type get` is executed
@@ -491,6 +541,7 @@ test classes. Instead:
 ### TC-U105: List service types returns empty list
 
 - **Requirement:** REQ-CST-010, REQ-CST-020
+- **Acceptance Criteria:** AC-CST-060
 - **Type:** Unit
 - **Given:** A mock server returning 200 with an empty service type list (`{"results":[],"nextPageToken":""}`)
 - **When:** `dcm catalog service-type list` is executed
@@ -499,6 +550,7 @@ test classes. Instead:
 ### TC-U106: Get non-existent service type
 
 - **Requirement:** REQ-CST-030, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CST-070, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for service type ID `nonexistent`
 - **When:** `dcm catalog service-type get nonexistent` is executed
@@ -514,6 +566,7 @@ test classes. Instead:
 ### TC-U046: Create catalog item from file
 
 - **Requirement:** REQ-CIT-010, REQ-CIT-030
+- **Acceptance Criteria:** AC-CIT-010
 - **Type:** Unit
 - **Transitively covers:** TC-U067 (generated Catalog Manager client usage)
 - **Given:** A valid catalog item YAML file AND a mock server returning 201
@@ -523,6 +576,7 @@ test classes. Instead:
 ### TC-U047: Create catalog item with client-specified ID
 
 - **Requirement:** REQ-CIT-020
+- **Acceptance Criteria:** AC-CIT-020
 - **Type:** Unit
 - **Given:** A valid catalog item file AND a mock server
 - **When:** `dcm catalog item create --from-file item.yaml --id my-catalog-item` is executed
@@ -531,6 +585,7 @@ test classes. Instead:
 ### TC-U048: Create catalog item without --from-file fails
 
 - **Requirement:** REQ-CIT-120
+- **Acceptance Criteria:** AC-CIT-080
 - **Type:** Unit
 - **Given:** No `--from-file` flag is provided
 - **When:** `dcm catalog item create` is executed
@@ -539,6 +594,7 @@ test classes. Instead:
 ### TC-U049: List catalog items
 
 - **Requirement:** REQ-CIT-040, REQ-CIT-050
+- **Acceptance Criteria:** AC-CIT-030
 - **Type:** Unit
 - **Given:** A mock server returning 200 with a list of catalog items
 - **When:** `dcm catalog item list` is executed
@@ -547,6 +603,7 @@ test classes. Instead:
 ### TC-U050: List catalog items with service-type filter
 
 - **Requirement:** REQ-CIT-040
+- **Acceptance Criteria:** AC-CIT-040
 - **Type:** Unit
 - **Given:** A mock server
 - **When:** `dcm catalog item list --service-type container` is executed
@@ -555,6 +612,7 @@ test classes. Instead:
 ### TC-U051: Get catalog item
 
 - **Requirement:** REQ-CIT-060
+- **Acceptance Criteria:** AC-CIT-050
 - **Type:** Unit
 - **Given:** A mock server returning 200 with a catalog item
 - **When:** `dcm catalog item get my-catalog-item` is executed
@@ -563,6 +621,7 @@ test classes. Instead:
 ### TC-U052: Get catalog item without CATALOG_ITEM_ID fails
 
 - **Requirement:** REQ-CIT-130
+- **Acceptance Criteria:** AC-CIT-090
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm catalog item get` is executed
@@ -571,6 +630,7 @@ test classes. Instead:
 ### TC-U055: Delete catalog item
 
 - **Requirement:** REQ-CIT-090, REQ-CIT-100
+- **Acceptance Criteria:** AC-CIT-070
 - **Type:** Unit
 - **Given:** A mock server returning 204 for delete
 - **When:** `dcm catalog item delete my-catalog-item` is executed
@@ -579,6 +639,7 @@ test classes. Instead:
 ### TC-U056: Delete catalog item without CATALOG_ITEM_ID fails
 
 - **Requirement:** REQ-CIT-130
+- **Acceptance Criteria:** AC-CIT-090
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm catalog item delete` is executed
@@ -587,6 +648,7 @@ test classes. Instead:
 ### TC-U107: List catalog items returns empty list
 
 - **Requirement:** REQ-CIT-040, REQ-CIT-050
+- **Acceptance Criteria:** AC-CIT-100
 - **Type:** Unit
 - **Given:** A mock server returning 200 with an empty catalog item list (`{"results":[],"nextPageToken":""}`)
 - **When:** `dcm catalog item list` is executed
@@ -595,6 +657,7 @@ test classes. Instead:
 ### TC-U108: Get non-existent catalog item
 
 - **Requirement:** REQ-CIT-060, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CIT-110, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for catalog item ID `nonexistent`
 - **When:** `dcm catalog item get nonexistent` is executed
@@ -603,6 +666,7 @@ test classes. Instead:
 ### TC-U110: Delete non-existent catalog item
 
 - **Requirement:** REQ-CIT-090, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CIT-130, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for catalog item ID `nonexistent`
 - **When:** `dcm catalog item delete nonexistent` is executed
@@ -611,6 +675,7 @@ test classes. Instead:
 ### TC-U111: Create catalog item server error
 
 - **Requirement:** REQ-CIT-010, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CIT-140, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A valid catalog item YAML file AND a mock server returning 500 with RFC 7807 body
 - **When:** `dcm catalog item create --from-file item.yaml` is executed
@@ -619,6 +684,7 @@ test classes. Instead:
 ### TC-U057: Catalog item table output columns
 
 - **Requirement:** REQ-OUT-050
+- **Acceptance Criteria:** AC-OUT-010
 - **Type:** Unit
 - **Given:** A mock server returning a catalog item with all fields populated
 - **When:** `dcm catalog item get my-catalog-item` is executed with `--output table`
@@ -634,6 +700,7 @@ test classes. Instead:
 ### TC-U058: Create instance from file
 
 - **Requirement:** REQ-CIN-010, REQ-CIN-030
+- **Acceptance Criteria:** AC-CIN-010
 - **Type:** Unit
 - **Transitively covers:** TC-U067 (generated Catalog Manager client usage)
 - **Given:** A valid instance YAML file AND a mock server returning 201
@@ -643,6 +710,7 @@ test classes. Instead:
 ### TC-U059: Create instance with client-specified ID
 
 - **Requirement:** REQ-CIN-020
+- **Acceptance Criteria:** AC-CIN-020
 - **Type:** Unit
 - **Given:** A valid instance file AND a mock server
 - **When:** `dcm catalog instance create --from-file instance.yaml --id my-instance` is executed
@@ -651,6 +719,7 @@ test classes. Instead:
 ### TC-U072: Create instance without --from-file fails
 
 - **Requirement:** REQ-CIN-100
+- **Acceptance Criteria:** AC-CIN-070
 - **Type:** Unit
 - **Given:** No `--from-file` flag is provided
 - **When:** `dcm catalog instance create` is executed
@@ -659,6 +728,7 @@ test classes. Instead:
 ### TC-U073: List instances
 
 - **Requirement:** REQ-CIN-040, REQ-CIN-050
+- **Acceptance Criteria:** AC-CIN-030
 - **Type:** Unit
 - **Given:** A mock server returning 200 with a list of instances
 - **When:** `dcm catalog instance list` is executed
@@ -667,6 +737,7 @@ test classes. Instead:
 ### TC-U074: List instances with pagination
 
 - **Requirement:** REQ-CIN-040
+- **Acceptance Criteria:** AC-CIN-040
 - **Type:** Unit
 - **Transitively covers:** TC-U069 (pagination flags present)
 - **Given:** A mock server
@@ -676,6 +747,7 @@ test classes. Instead:
 ### TC-U075: Get instance
 
 - **Requirement:** REQ-CIN-060
+- **Acceptance Criteria:** AC-CIN-050
 - **Type:** Unit
 - **Given:** A mock server returning 200 with an instance
 - **When:** `dcm catalog instance get my-instance` is executed
@@ -684,6 +756,7 @@ test classes. Instead:
 ### TC-U076: Get instance without INSTANCE_ID fails
 
 - **Requirement:** REQ-CIN-110
+- **Acceptance Criteria:** AC-CIN-080
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm catalog instance get` is executed
@@ -692,6 +765,7 @@ test classes. Instead:
 ### TC-U077: Delete instance
 
 - **Requirement:** REQ-CIN-070, REQ-CIN-080
+- **Acceptance Criteria:** AC-CIN-060
 - **Type:** Unit
 - **Given:** A mock server returning 204 for delete
 - **When:** `dcm catalog instance delete my-instance` is executed
@@ -700,6 +774,7 @@ test classes. Instead:
 ### TC-U078: Delete instance without INSTANCE_ID fails
 
 - **Requirement:** REQ-CIN-110
+- **Acceptance Criteria:** AC-CIN-080
 - **Type:** Unit
 - **Given:** No positional argument is provided
 - **When:** `dcm catalog instance delete` is executed
@@ -708,6 +783,7 @@ test classes. Instead:
 ### TC-U112: List instances returns empty list
 
 - **Requirement:** REQ-CIN-040, REQ-CIN-050
+- **Acceptance Criteria:** AC-CIN-090
 - **Type:** Unit
 - **Given:** A mock server returning 200 with an empty instance list (`{"results":[],"nextPageToken":""}`)
 - **When:** `dcm catalog instance list` is executed
@@ -716,6 +792,7 @@ test classes. Instead:
 ### TC-U113: Get non-existent instance
 
 - **Requirement:** REQ-CIN-060, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CIN-100, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for instance ID `nonexistent`
 - **When:** `dcm catalog instance get nonexistent` is executed
@@ -724,6 +801,7 @@ test classes. Instead:
 ### TC-U114: Delete non-existent instance
 
 - **Requirement:** REQ-CIN-070, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CIN-110, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body for instance ID `nonexistent`
 - **When:** `dcm catalog instance delete nonexistent` is executed
@@ -732,6 +810,7 @@ test classes. Instead:
 ### TC-U115: Create instance server error
 
 - **Requirement:** REQ-CIN-010, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CIN-120, AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A valid instance YAML file AND a mock server returning 500 with RFC 7807 body
 - **When:** `dcm catalog instance create --from-file instance.yaml` is executed
@@ -740,6 +819,7 @@ test classes. Instead:
 ### TC-U079: Instance table output columns
 
 - **Requirement:** REQ-OUT-050
+- **Acceptance Criteria:** AC-OUT-010
 - **Type:** Unit
 - **Given:** A mock server returning an instance with all fields populated
 - **When:** `dcm catalog instance get my-instance` is executed with `--output table`
@@ -756,6 +836,7 @@ test classes. Instead:
 ### TC-U088: HTTPS URL enables TLS transport
 
 - **Requirement:** REQ-XC-TLS-010
+- **Acceptance Criteria:** AC-XC-TLS-010
 - **Type:** Unit
 - **Given:** The API Gateway URL is `https://localhost:<port>` pointing to a TLS-enabled httptest server
 - **When:** `dcm policy list --tls-skip-verify` is executed
@@ -764,6 +845,7 @@ test classes. Instead:
 ### TC-U089: HTTP URL skips TLS and ignores TLS flags
 
 - **Requirement:** REQ-XC-TLS-020
+- **Acceptance Criteria:** AC-XC-TLS-020
 - **Type:** Unit
 - **Given:** The API Gateway URL is `http://localhost:<port>` AND `--tls-skip-verify` is set AND `--tls-ca-cert /some/path` is set
 - **When:** `dcm policy list` is executed against a non-TLS httptest server
@@ -772,6 +854,7 @@ test classes. Instead:
 ### TC-U090: Custom CA certificate used for verification
 
 - **Requirement:** REQ-XC-TLS-030, REQ-XC-TLS-080
+- **Acceptance Criteria:** AC-XC-TLS-030
 - **Type:** Unit
 - **Given:** A TLS-enabled httptest server with a self-signed certificate AND the CA cert is written to a temp file
 - **When:** `dcm policy list --api-gateway-url https://... --tls-ca-cert /tmp/ca.pem` is executed
@@ -780,6 +863,7 @@ test classes. Instead:
 ### TC-U091: Mutual TLS with client certificate and key
 
 - **Requirement:** REQ-XC-TLS-040
+- **Acceptance Criteria:** AC-XC-TLS-040
 - **Type:** Unit
 - **Given:** A TLS-enabled httptest server that requires client certificates AND valid client cert/key files exist
 - **When:** `dcm policy list --tls-client-cert /tmp/client.pem --tls-client-key /tmp/client-key.pem --tls-ca-cert /tmp/ca.pem` is executed
@@ -788,6 +872,7 @@ test classes. Instead:
 ### TC-U092: Skip TLS verification
 
 - **Requirement:** REQ-XC-TLS-050
+- **Acceptance Criteria:** AC-XC-TLS-050
 - **Type:** Unit
 - **Given:** A TLS-enabled httptest server with a self-signed certificate AND no CA cert is provided
 - **When:** `dcm policy list --api-gateway-url https://... --tls-skip-verify` is executed
@@ -796,6 +881,7 @@ test classes. Instead:
 ### TC-U093: Incomplete mTLS config — cert without key
 
 - **Requirement:** REQ-XC-TLS-060
+- **Acceptance Criteria:** AC-XC-TLS-060
 - **Type:** Unit
 - **Given:** `--tls-client-cert /tmp/client.pem` is provided WITHOUT `--tls-client-key`
 - **When:** The CLI validates configuration
@@ -804,6 +890,7 @@ test classes. Instead:
 ### TC-U094: Incomplete mTLS config — key without cert
 
 - **Requirement:** REQ-XC-TLS-060
+- **Acceptance Criteria:** AC-XC-TLS-060
 - **Type:** Unit
 - **Given:** `--tls-client-key /tmp/client-key.pem` is provided WITHOUT `--tls-client-cert`
 - **When:** The CLI validates configuration
@@ -812,6 +899,7 @@ test classes. Instead:
 ### TC-U095: Nonexistent CA cert file
 
 - **Requirement:** REQ-XC-TLS-070
+- **Acceptance Criteria:** AC-XC-TLS-070
 - **Type:** Unit
 - **Given:** `--tls-ca-cert /nonexistent/ca.pem` is provided AND the API Gateway URL uses `https://`
 - **When:** The CLI attempts to load the CA certificate
@@ -820,6 +908,7 @@ test classes. Instead:
 ### TC-U096: Nonexistent client cert file
 
 - **Requirement:** REQ-XC-TLS-070
+- **Acceptance Criteria:** AC-XC-TLS-070
 - **Type:** Unit
 - **Given:** `--tls-client-cert /nonexistent/cert.pem` and `--tls-client-key /tmp/valid-key.pem` are provided AND the API Gateway URL uses `https://`
 - **When:** The CLI attempts to load the client certificate
@@ -828,6 +917,7 @@ test classes. Instead:
 ### TC-U097: Default system CA bundle used when no custom CA specified
 
 - **Requirement:** REQ-XC-TLS-080
+- **Acceptance Criteria:** AC-XC-TLS-030
 - **Type:** Unit
 - **Given:** The API Gateway URL uses `https://` AND no `--tls-ca-cert` is provided
 - **When:** The TLS transport is configured
@@ -836,6 +926,7 @@ test classes. Instead:
 ### TC-U098: TLS config loaded from config file
 
 - **Requirement:** REQ-CFG-010, REQ-XC-TLS-030
+- **Acceptance Criteria:** AC-CFG-010, AC-XC-TLS-030
 - **Type:** Unit
 - **Given:** A config file exists with `tls-ca-cert: /path/to/ca.pem` and `tls-skip-verify: true`
 - **When:** Config is loaded
@@ -844,6 +935,7 @@ test classes. Instead:
 ### TC-U099: TLS environment variables override config file
 
 - **Requirement:** REQ-CFG-030, REQ-CFG-040
+- **Acceptance Criteria:** AC-CFG-030, AC-CFG-040
 - **Type:** Unit
 - **Given:** A config file has `tls-skip-verify: false` AND `DCM_TLS_SKIP_VERIFY=true` is set
 - **When:** Config is loaded
@@ -861,6 +953,7 @@ test classes. Instead:
 ### TC-U080: API error displayed in table format
 
 - **Requirement:** REQ-XC-ERR-010, REQ-XC-ERR-020
+- **Acceptance Criteria:** AC-XC-ERR-010
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body: `{"type":"NOT_FOUND","status":404,"title":"Policy \"nonexistent\" not found.","detail":"The requested policy resource does not exist."}`
 - **When:** `dcm policy get nonexistent` is executed with `--output table`
@@ -875,6 +968,7 @@ test classes. Instead:
 ### TC-U081: API error displayed in JSON format
 
 - **Requirement:** REQ-XC-ERR-030
+- **Acceptance Criteria:** AC-XC-ERR-020
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body
 - **When:** `dcm policy get nonexistent -o json` is executed
@@ -883,6 +977,7 @@ test classes. Instead:
 ### TC-U082: API error displayed in YAML format
 
 - **Requirement:** REQ-XC-ERR-030
+- **Acceptance Criteria:** AC-XC-ERR-020
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body
 - **When:** `dcm policy get nonexistent -o yaml` is executed
@@ -891,6 +986,7 @@ test classes. Instead:
 ### TC-U083: Connection error displays clear message
 
 - **Requirement:** REQ-XC-ERR-040
+- **Acceptance Criteria:** AC-XC-ERR-030
 - **Type:** Unit
 - **Given:** The API Gateway URL points to a closed/non-existent server
 - **When:** `dcm policy list` is executed
@@ -899,6 +995,7 @@ test classes. Instead:
 ### TC-U084: Timeout error displays clear message
 
 - **Requirement:** REQ-XC-ERR-050
+- **Acceptance Criteria:** AC-XC-ERR-040
 - **Type:** Unit
 - **Given:** A mock server that delays longer than the configured timeout AND `--timeout 1` is set
 - **When:** `dcm policy list` is executed
@@ -907,6 +1004,7 @@ test classes. Instead:
 ### TC-U085: Exit code 1 on runtime error
 
 - **Requirement:** REQ-CLI-060, REQ-XC-ERR-060
+- **Acceptance Criteria:** AC-CLI-050
 - **Type:** Unit
 - **Given:** A mock server returning a 500 error response
 - **When:** Any command is executed
@@ -926,6 +1024,7 @@ dedicated test class or `Describe` block.
 #### TC-U060: YAML file correctly parsed
 
 - **Requirement:** REQ-XC-INP-010, REQ-XC-INP-020
+- **Acceptance Criteria:** AC-XC-INP-010
 - **Type:** Unit
 - **Given:** A valid YAML file is provided via `--from-file`
 - **When:** The file is parsed
@@ -935,6 +1034,7 @@ dedicated test class or `Describe` block.
 #### TC-U061: JSON file correctly parsed
 
 - **Requirement:** REQ-XC-INP-010, REQ-XC-INP-020
+- **Acceptance Criteria:** AC-XC-INP-020
 - **Type:** Unit
 - **Given:** A valid JSON file is provided via `--from-file`
 - **When:** The file is parsed
@@ -944,6 +1044,7 @@ dedicated test class or `Describe` block.
 #### TC-U062: Invalid file produces error
 
 - **Requirement:** REQ-XC-INP-030
+- **Acceptance Criteria:** AC-XC-INP-030
 - **Type:** Unit
 - **Given:** The file specified by `--from-file` does not exist
 - **When:** The CLI attempts to read it
@@ -953,6 +1054,7 @@ dedicated test class or `Describe` block.
 #### TC-U063: Unreadable file content produces error
 
 - **Requirement:** REQ-XC-INP-030
+- **Acceptance Criteria:** AC-XC-INP-030
 - **Type:** Unit
 - **Given:** The file specified by `--from-file` contains invalid/unparseable content
 - **When:** The CLI attempts to parse it
@@ -964,6 +1066,7 @@ dedicated test class or `Describe` block.
 #### TC-U064: Policy Manager client instantiated with correct URL
 
 - **Requirement:** REQ-XC-CLI-010, REQ-XC-CLI-030
+- **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
 - **Given:** The API Gateway URL is `http://localhost:9080`
 - **When:** The Policy Manager client is created
@@ -973,6 +1076,7 @@ dedicated test class or `Describe` block.
 #### TC-U065: Catalog Manager client instantiated with correct URL
 
 - **Requirement:** REQ-XC-CLI-020, REQ-XC-CLI-030
+- **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
 - **Given:** The API Gateway URL is `http://localhost:9080`
 - **When:** The Catalog Manager client is created
@@ -982,6 +1086,7 @@ dedicated test class or `Describe` block.
 #### TC-U066: Policy Manager generated client used for policy operations
 
 - **Requirement:** REQ-XC-CLI-010, REQ-POL-110
+- **Acceptance Criteria:** AC-POL-130
 - **Type:** Unit (structural)
 - **Given:** Any policy command is invoked
 - **When:** The command communicates with the API
@@ -991,6 +1096,7 @@ dedicated test class or `Describe` block.
 #### TC-U067: Catalog Manager generated client used for catalog operations
 
 - **Requirement:** REQ-XC-CLI-020, REQ-CST-050, REQ-CIT-110, REQ-CIN-090
+- **Acceptance Criteria:** AC-CST-050
 - **Type:** Unit (structural)
 - **Given:** Any catalog command is invoked
 - **When:** The command communicates with the API
@@ -1000,6 +1106,7 @@ dedicated test class or `Describe` block.
 #### TC-U068: Request timeout applied to HTTP requests
 
 - **Requirement:** REQ-XC-CLI-040
+- **Acceptance Criteria:** AC-XC-CLI-020
 - **Type:** Unit
 - **Given:** The timeout is configured to 30 seconds
 - **When:** A request is made via the generated client
@@ -1011,6 +1118,7 @@ dedicated test class or `Describe` block.
 #### TC-U069: Pagination flags available on all list commands
 
 - **Requirement:** REQ-XC-PAG-010
+- **Acceptance Criteria:** AC-XC-PAG-010
 - **Type:** Unit
 - **Given:** Any list command (`policy list`, `catalog service-type list`, `catalog item list`, `catalog instance list`)
 - **When:** `--help` is displayed
@@ -1020,6 +1128,7 @@ dedicated test class or `Describe` block.
 #### TC-U070: Pagination parameters passed as query parameters
 
 - **Requirement:** REQ-XC-PAG-020
+- **Acceptance Criteria:** AC-XC-PAG-020
 - **Type:** Unit
 - **Given:** `dcm policy list --page-size 10 --page-token abc123` is invoked
 - **When:** The request is sent
@@ -1029,6 +1138,7 @@ dedicated test class or `Describe` block.
 #### TC-U071: next_page_token surfaced according to output format
 
 - **Requirement:** REQ-XC-PAG-030
+- **Acceptance Criteria:** AC-OUT-040, AC-OUT-050
 - **Type:** Unit
 - **Given:** A list response includes `next_page_token`
 - **When:** The response is formatted
@@ -1040,6 +1150,7 @@ dedicated test class or `Describe` block.
 #### TC-U086: Cobra framework used
 
 - **Requirement:** REQ-CLI-010
+- **Acceptance Criteria:** AC-CLI-010
 - **Type:** Unit (structural)
 - **Given:** The CLI binary is built
 - **When:** `dcm --help` is invoked
@@ -1049,6 +1160,7 @@ dedicated test class or `Describe` block.
 #### TC-U087: Viper used for configuration management
 
 - **Requirement:** REQ-CFG-060
+- **Acceptance Criteria:** AC-CFG-010, AC-CFG-020, AC-CFG-030, AC-CFG-040, AC-CFG-050, AC-CFG-060
 - **Type:** Unit (structural)
 - **Given:** The configuration package imports and uses Viper
 - **When:** Configuration is loaded

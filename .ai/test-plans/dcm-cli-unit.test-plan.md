@@ -4,7 +4,7 @@
 
 - **Related Spec:** .ai/specs/dcm-cli.spec.md
 - **Related Plan:** .ai/plan/dcm-cli.plan.md
-- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–100, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-VER-010–030, REQ-XC-ERR-010–060, REQ-XC-INP-010–030, REQ-XC-CLI-010–040, REQ-XC-PAG-010–030
+- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–100, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-VER-010–030, REQ-XC-ERR-010–060, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
 - **Framework:** Ginkgo v2 + Gomega
 - **Created:** 2026-03-09
 
@@ -67,7 +67,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** No config file exists AND no environment variables are set AND no flags are provided
 - **When:** Config is loaded
-- **Then:** `APIGatewayURL` defaults to `"http://localhost:9080"` AND `OutputFormat` defaults to `"table"` AND `Timeout` defaults to `30`
+- **Then:** `APIGatewayURL` defaults to `"http://localhost:9080"` AND `OutputFormat` defaults to `"table"` AND `Timeout` defaults to `30` AND `TLSCACert` defaults to `""` AND `TLSClientCert` defaults to `""` AND `TLSClientKey` defaults to `""` AND `TLSSkipVerify` defaults to `false`
 
 ### TC-U005: Missing config file does not cause failure
 
@@ -108,6 +108,10 @@ test classes. Instead:
   | `DCM_API_GATEWAY_URL`  | `http://e:9080` | `APIGatewayURL`  |
   | `DCM_OUTPUT_FORMAT`    | `json`     | `OutputFormat`        |
   | `DCM_TIMEOUT`          | `60`       | `Timeout`             |
+  | `DCM_TLS_CA_CERT`      | `/path/ca.pem` | `TLSCACert`      |
+  | `DCM_TLS_CLIENT_CERT`  | `/path/cert.pem` | `TLSClientCert` |
+  | `DCM_TLS_CLIENT_KEY`   | `/path/key.pem` | `TLSClientKey`   |
+  | `DCM_TLS_SKIP_VERIFY`  | `true`     | `TLSSkipVerify`       |
 
 - **When:** Config is loaded
 - **Then:** Each config field matches the environment variable value
@@ -240,7 +244,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** The root command is created
 - **When:** `dcm --help` is executed
-- **Then:** Flags `--api-gateway-url`, `--output`/`-o`, `--timeout`, and `--config` are listed
+- **Then:** Flags `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` are listed
 
 ### TC-U022: Exit code 0 on success
 
@@ -706,11 +710,128 @@ test classes. Instead:
 
 ---
 
-## 9 · Error Handling
+## 9 · TLS Configuration
+
+> **Suggested Ginkgo structure:** `Describe("TLS Configuration")` with `Context`
+> per scenario. Tests use `net/http/httptest` with TLS-enabled servers where
+> applicable.
+
+### TC-U088: HTTPS URL enables TLS transport
+
+- **Requirement:** REQ-XC-TLS-010
+- **Priority:** High
+- **Type:** Unit
+- **Given:** The API Gateway URL is `https://localhost:<port>` pointing to a TLS-enabled httptest server
+- **When:** `dcm policy list --tls-skip-verify` is executed
+- **Then:** The request MUST succeed over TLS AND the mock server receives the request
+
+### TC-U089: HTTP URL skips TLS and ignores TLS flags
+
+- **Requirement:** REQ-XC-TLS-020
+- **Priority:** High
+- **Type:** Unit
+- **Given:** The API Gateway URL is `http://localhost:<port>` AND `--tls-skip-verify` is set AND `--tls-ca-cert /some/path` is set
+- **When:** `dcm policy list` is executed against a non-TLS httptest server
+- **Then:** The request MUST succeed without TLS AND TLS flags MUST be silently ignored
+
+### TC-U090: Custom CA certificate used for verification
+
+- **Requirement:** REQ-XC-TLS-030, REQ-XC-TLS-080
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A TLS-enabled httptest server with a self-signed certificate AND the CA cert is written to a temp file
+- **When:** `dcm policy list --api-gateway-url https://... --tls-ca-cert /tmp/ca.pem` is executed
+- **Then:** The TLS handshake MUST succeed using the provided CA certificate
+
+### TC-U091: Mutual TLS with client certificate and key
+
+- **Requirement:** REQ-XC-TLS-040
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A TLS-enabled httptest server that requires client certificates AND valid client cert/key files exist
+- **When:** `dcm policy list --tls-client-cert /tmp/client.pem --tls-client-key /tmp/client-key.pem --tls-ca-cert /tmp/ca.pem` is executed
+- **Then:** The TLS handshake MUST succeed with mutual authentication
+
+### TC-U092: Skip TLS verification
+
+- **Requirement:** REQ-XC-TLS-050
+- **Priority:** High
+- **Type:** Unit
+- **Given:** A TLS-enabled httptest server with a self-signed certificate AND no CA cert is provided
+- **When:** `dcm policy list --api-gateway-url https://... --tls-skip-verify` is executed
+- **Then:** The request MUST succeed despite the untrusted certificate
+
+### TC-U093: Incomplete mTLS config — cert without key
+
+- **Requirement:** REQ-XC-TLS-060
+- **Priority:** High
+- **Type:** Unit
+- **Given:** `--tls-client-cert /tmp/client.pem` is provided WITHOUT `--tls-client-key`
+- **When:** The CLI validates configuration
+- **Then:** The CLI MUST exit with code 2 AND display a usage error indicating both cert and key are required
+
+### TC-U094: Incomplete mTLS config — key without cert
+
+- **Requirement:** REQ-XC-TLS-060
+- **Priority:** High
+- **Type:** Unit
+- **Given:** `--tls-client-key /tmp/client-key.pem` is provided WITHOUT `--tls-client-cert`
+- **When:** The CLI validates configuration
+- **Then:** The CLI MUST exit with code 2 AND display a usage error indicating both cert and key are required
+
+### TC-U095: Nonexistent CA cert file
+
+- **Requirement:** REQ-XC-TLS-070
+- **Priority:** High
+- **Type:** Unit
+- **Given:** `--tls-ca-cert /nonexistent/ca.pem` is provided AND the API Gateway URL uses `https://`
+- **When:** The CLI attempts to load the CA certificate
+- **Then:** The CLI MUST exit with code 1 AND display a clear error message
+
+### TC-U096: Nonexistent client cert file
+
+- **Requirement:** REQ-XC-TLS-070
+- **Priority:** High
+- **Type:** Unit
+- **Given:** `--tls-client-cert /nonexistent/cert.pem` and `--tls-client-key /tmp/valid-key.pem` are provided AND the API Gateway URL uses `https://`
+- **When:** The CLI attempts to load the client certificate
+- **Then:** The CLI MUST exit with code 1 AND display a clear error message
+
+### TC-U097: Default system CA bundle used when no custom CA specified
+
+- **Requirement:** REQ-XC-TLS-080
+- **Priority:** Medium
+- **Type:** Unit
+- **Given:** The API Gateway URL uses `https://` AND no `--tls-ca-cert` is provided
+- **When:** The TLS transport is configured
+- **Then:** The system default CA bundle MUST be used (RootCAs is nil in tls.Config)
+
+### TC-U098: TLS config loaded from config file
+
+- **Requirement:** REQ-CFG-010, REQ-XC-TLS-030
+- **Priority:** Medium
+- **Type:** Unit
+- **Given:** A config file exists with `tls-ca-cert: /path/to/ca.pem` and `tls-skip-verify: true`
+- **When:** Config is loaded
+- **Then:** `TLSCACert` is `"/path/to/ca.pem"` AND `TLSSkipVerify` is `true`
+
+### TC-U099: TLS environment variables override config file
+
+- **Requirement:** REQ-CFG-030, REQ-CFG-040
+- **Priority:** Medium
+- **Type:** Unit
+- **Given:** A config file has `tls-skip-verify: false` AND `DCM_TLS_SKIP_VERIFY=true` is set
+- **When:** Config is loaded
+- **Then:** `TLSSkipVerify` is `true`
+
+---
+
+## 10 · Error Handling
 
 > **Suggested Ginkgo structure:** `Describe("Error Handling")` with `Context`
 > per error type. Tests exercise error paths through command execution with
-> mock servers returning error responses.
+> mock servers returning error responses. TLS-related errors are covered in
+> section 9 (TLS Configuration).
 
 ### TC-U080: API error displayed in table format
 
@@ -1017,11 +1138,20 @@ dedicated test class or `Describe` block.
 | REQ-XC-CLI-020  | TC-U065 (via TC-U042), TC-U067 (via TC-U042/U044/U046/U058) | Covered |
 | REQ-XC-CLI-030  | TC-U064 (via TC-U026), TC-U065 (via TC-U042)         | Covered |
 | REQ-XC-CLI-040  | TC-U068 (via TC-U084)                               | Covered |
+| REQ-XC-CLI-050  | TC-U088, TC-U090, TC-U091                            | Covered |
 | REQ-XC-PAG-010  | TC-U069 (via TC-U033, TC-U043, TC-U074)              | Covered |
 | REQ-XC-PAG-020  | TC-U070 (via TC-U033)                               | Covered |
 | REQ-XC-PAG-030  | TC-U071 (via TC-U013, TC-U014, TC-U015)              | Covered |
+| REQ-XC-TLS-010  | TC-U088                                             | Covered |
+| REQ-XC-TLS-020  | TC-U089                                             | Covered |
+| REQ-XC-TLS-030  | TC-U090                                             | Covered |
+| REQ-XC-TLS-040  | TC-U091                                             | Covered |
+| REQ-XC-TLS-050  | TC-U092                                             | Covered |
+| REQ-XC-TLS-060  | TC-U093, TC-U094                                    | Covered |
+| REQ-XC-TLS-070  | TC-U095, TC-U096                                    | Covered |
+| REQ-XC-TLS-080  | TC-U090, TC-U097                                    | Covered |
 
-**Total:** 68 test case IDs — 46 in behavioural test classes, 22 in the utility
+**Total:** 80 test case IDs — 58 in behavioural test classes, 22 in the utility
 index (tested transitively through higher-level behavioural tests).
 
 ---

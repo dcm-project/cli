@@ -19,6 +19,7 @@ dependencies.
 - Output formatting (table, JSON, YAML)
 - Configuration via file, environment variables, and flags
 - Pagination support for list operations
+- TLS support with custom CA certificates, client certificates (mTLS), and skip-verify
 - Container image for distribution
 
 **Out of scope (v1alpha1):**
@@ -47,14 +48,14 @@ dependencies.
 ## 2. Architecture
 
 ```
-┌─────────┐       ┌──────────────────┐       ┌──────────────────┐
-│         │       │                  │       │ Policy Manager   │
-│  dcm    │──────▶│  API Gateway     │──────▶│ (port 8080)      │
-│  CLI    │ HTTP  │  (KrakenD 9080)  │       └──────────────────┘
-│         │       │                  │       ┌──────────────────┐
-└─────────┘       │                  │──────▶│ Catalog Manager  │
-                  └──────────────────┘       │ (port 8080)      │
-                                             └──────────────────┘
+┌─────────┐              ┌──────────────────┐       ┌──────────────────┐
+│         │              │                  │       │ Policy Manager   │
+│  dcm    │─────────────▶│  API Gateway     │──────▶│ (port 8080)      │
+│  CLI    │ HTTP / HTTPS │  (KrakenD 9080)  │       └──────────────────┘
+│         │              │                  │       ┌──────────────────┐
+└─────────┘              │                  │──────▶│ Catalog Manager  │
+                         └──────────────────┘       │ (port 8080)      │
+                                                    └──────────────────┘
 ```
 
 ```
@@ -134,7 +135,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 | REQ-CLI-020 | The CLI MUST define a root command `dcm` with global flags | MUST | |
 | REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `version` | MUST | |
 | REQ-CLI-040 | The `catalog` command MUST register subcommand groups: `service-type`, `item`, `instance` | MUST | |
-| REQ-CLI-050 | Global flags MUST include `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config` | MUST | |
+| REQ-CLI-050 | Global flags MUST include `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | MUST | |
 | REQ-CLI-060 | The CLI MUST exit with code 0 on success, 1 on runtime errors, 2 on usage errors | MUST | |
 | REQ-CLI-070 | The entry point (`cmd/dcm/main.go`) MUST bootstrap the root command and execute it | MUST | |
 
@@ -152,7 +153,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 - **Validates:** REQ-CLI-020, REQ-CLI-050
 - **Given** the CLI is invoked
 - **When** `dcm --help` is run
-- **Then** the global flags `--api-gateway-url`, `--output`/`-o`, `--timeout`, and `--config` MUST be listed
+- **Then** the global flags `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` MUST be listed
 
 ##### AC-CLI-030: Subcommand registration
 
@@ -212,9 +213,9 @@ profile/context support.
 |----|-------------|----------|-------|
 | REQ-CFG-010 | The CLI MUST load configuration from the config file at `~/.dcm/config.yaml` by default | MUST | |
 | REQ-CFG-020 | The config file path MUST be overridable via `--config` flag or `DCM_CONFIG` environment variable | MUST | |
-| REQ-CFG-030 | The CLI MUST support environment variables: `DCM_API_GATEWAY_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG` | MUST | |
+| REQ-CFG-030 | The CLI MUST support environment variables: `DCM_API_GATEWAY_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`, `DCM_TLS_CA_CERT`, `DCM_TLS_CLIENT_CERT`, `DCM_TLS_CLIENT_KEY`, `DCM_TLS_SKIP_VERIFY` | MUST | |
 | REQ-CFG-040 | Configuration precedence MUST be: CLI flags > environment variables > config file > built-in defaults | MUST | |
-| REQ-CFG-050 | Built-in defaults MUST be: `api-gateway-url=http://localhost:9080`, `output-format=table`, `timeout=30` | MUST | |
+| REQ-CFG-050 | Built-in defaults MUST be: `api-gateway-url=http://localhost:9080`, `output-format=table`, `timeout=30`, `tls-ca-cert=""`, `tls-client-cert=""`, `tls-client-key=""`, `tls-skip-verify=false` | MUST | |
 | REQ-CFG-060 | The CLI MUST use Viper for configuration management | MUST | |
 | REQ-CFG-070 | The CLI MUST NOT fail if the config file does not exist; defaults MUST be used | MUST | |
 
@@ -226,6 +227,10 @@ profile/context support.
 | output-format | DCM_OUTPUT_FORMAT | --output / -o | table | Output format (table, json, yaml) |
 | timeout | DCM_TIMEOUT | --timeout | 30 | Request timeout in seconds |
 | - | DCM_CONFIG | --config | ~/.dcm/config.yaml | Config file path |
+| tls-ca-cert | DCM_TLS_CA_CERT | --tls-ca-cert | (empty) | Path to CA certificate file for TLS verification |
+| tls-client-cert | DCM_TLS_CLIENT_CERT | --tls-client-cert | (empty) | Path to client certificate file for mTLS |
+| tls-client-key | DCM_TLS_CLIENT_KEY | --tls-client-key | (empty) | Path to client private key file for mTLS |
+| tls-skip-verify | DCM_TLS_SKIP_VERIFY | --tls-skip-verify | false | Skip TLS certificate verification |
 
 #### Acceptance Criteria
 
@@ -267,6 +272,10 @@ profile/context support.
 - **Then** `api-gateway-url` MUST be `http://localhost:9080`
 - **And** `output-format` MUST be `table`
 - **And** `timeout` MUST be `30`
+- **And** `tls-ca-cert` MUST be `""`
+- **And** `tls-client-cert` MUST be `""`
+- **And** `tls-client-key` MUST be `""`
+- **And** `tls-skip-verify` MUST be `false`
 
 ##### AC-CFG-060: Missing config file
 
@@ -934,6 +943,7 @@ Depends on Topic 1 (CLI Framework).
 | REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client (`github.com/dcm-project/catalog-manager/pkg/client`) for all catalog operations | MUST | |
 | REQ-XC-CLI-030 | Both clients MUST be instantiated with the API Gateway URL appended with `/api/v1alpha1` | MUST | |
 | REQ-XC-CLI-040 | Both clients MUST respect the configured request timeout | MUST | |
+| REQ-XC-CLI-050 | Both clients MUST use a custom HTTP client with TLS transport when the API Gateway URL uses `https://` | MUST | |
 
 #### Acceptance Criteria
 
@@ -951,6 +961,13 @@ Depends on Topic 1 (CLI Framework).
 - **Given** the timeout is configured to 30 seconds
 - **When** a request is made via the generated client
 - **Then** the request context MUST have a 30-second deadline
+
+##### AC-XC-CLI-030: TLS transport for HTTPS
+
+- **Validates:** REQ-XC-CLI-050
+- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **When** the generated clients are created
+- **Then** a custom HTTP client with TLS transport MUST be passed via `WithHTTPClient`
 
 ### 5.4 Pagination
 
@@ -978,6 +995,76 @@ Depends on Topic 1 (CLI Framework).
 - **When** the request is sent
 - **Then** the query parameters MUST include `page_size=10` and `page_token=abc123`
 
+### 5.5 TLS Configuration
+
+#### Requirements
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| REQ-XC-TLS-010 | When the API Gateway URL uses `https://`, the CLI MUST establish a TLS connection | MUST | |
+| REQ-XC-TLS-020 | When the API Gateway URL uses `http://`, the CLI MUST NOT use TLS and MUST silently ignore TLS-related flags/config | MUST | |
+| REQ-XC-TLS-030 | The CLI MUST support a `--tls-ca-cert` flag to specify a custom CA certificate for server verification | MUST | |
+| REQ-XC-TLS-040 | The CLI MUST support `--tls-client-cert` and `--tls-client-key` flags for mutual TLS (mTLS) | MUST | |
+| REQ-XC-TLS-050 | The CLI MUST support a `--tls-skip-verify` flag to skip server certificate verification | MUST | |
+| REQ-XC-TLS-060 | If `--tls-client-cert` is provided without `--tls-client-key` (or vice versa), the CLI MUST exit with code 2 | MUST | |
+| REQ-XC-TLS-070 | If a specified CA cert, client cert, or client key file does not exist or is unreadable, the CLI MUST exit with code 1 with a clear error message | MUST | |
+| REQ-XC-TLS-080 | When no custom CA cert is provided and the URL uses `https://`, the system default CA bundle MUST be used | MUST | |
+
+#### Acceptance Criteria
+
+##### AC-XC-TLS-010: HTTPS triggers TLS
+
+- **Validates:** REQ-XC-TLS-010
+- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **When** any command makes a request
+- **Then** the HTTP client MUST use a TLS transport
+
+##### AC-XC-TLS-020: HTTP skips TLS
+
+- **Validates:** REQ-XC-TLS-020
+- **Given** the API Gateway URL is `http://localhost:9080`
+- **And** `--tls-skip-verify` or other TLS flags are set
+- **When** any command makes a request
+- **Then** TLS MUST NOT be used and TLS flags MUST be silently ignored
+
+##### AC-XC-TLS-030: Custom CA certificate
+
+- **Validates:** REQ-XC-TLS-030, REQ-XC-TLS-080
+- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **And** `--tls-ca-cert /path/to/ca.pem` is provided
+- **When** the TLS connection is established
+- **Then** the custom CA certificate MUST be used to verify the server
+
+##### AC-XC-TLS-040: Mutual TLS with client certificate
+
+- **Validates:** REQ-XC-TLS-040
+- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **And** `--tls-client-cert /path/to/cert.pem` and `--tls-client-key /path/to/key.pem` are provided
+- **When** the TLS connection is established
+- **Then** the client certificate and key MUST be used for mutual TLS
+
+##### AC-XC-TLS-050: Skip TLS verification
+
+- **Validates:** REQ-XC-TLS-050
+- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **And** `--tls-skip-verify` is set
+- **When** the TLS connection is established
+- **Then** server certificate verification MUST be skipped
+
+##### AC-XC-TLS-060: Incomplete mTLS configuration
+
+- **Validates:** REQ-XC-TLS-060
+- **Given** `--tls-client-cert` is provided without `--tls-client-key` (or vice versa)
+- **When** the CLI validates configuration
+- **Then** the CLI MUST exit with code 2 and display a usage error
+
+##### AC-XC-TLS-070: Invalid TLS file path
+
+- **Validates:** REQ-XC-TLS-070
+- **Given** `--tls-ca-cert /nonexistent/ca.pem` is provided
+- **When** the CLI attempts to load the certificate
+- **Then** the CLI MUST exit with code 1 with a clear error message
+
 ---
 
 ## 6. Consolidated Configuration Reference
@@ -988,6 +1075,10 @@ Depends on Topic 1 (CLI Framework).
 | output-format | DCM_OUTPUT_FORMAT | --output / -o | table | No | 2 |
 | timeout | DCM_TIMEOUT | --timeout | 30 | No | 2 |
 | - | DCM_CONFIG | --config | ~/.dcm/config.yaml | No | 2 |
+| tls-ca-cert | DCM_TLS_CA_CERT | --tls-ca-cert | (empty) | No | 2 |
+| tls-client-cert | DCM_TLS_CLIENT_CERT | --tls-client-cert | (empty) | No | 2 |
+| tls-client-key | DCM_TLS_CLIENT_KEY | --tls-client-key | (empty) | No | 2 |
+| tls-skip-verify | DCM_TLS_SKIP_VERIFY | --tls-skip-verify | false | No | 2 |
 
 ---
 
@@ -1060,6 +1151,18 @@ token. JSON/YAML output includes the token in the response object for
 programmatic use.
 
 **Related requirements:** REQ-OUT-090
+
+### DD-080: Protocol-driven TLS
+
+**Decision:** TLS is enabled automatically when the API Gateway URL uses `https://`
+and disabled when it uses `http://`. TLS flags are silently ignored for `http://` URLs.
+
+**Rationale:** Follows the principle of least surprise — the URL scheme already
+communicates intent. Users should not need to set a separate "enable TLS" flag.
+Custom CA certs, client certs for mTLS, and skip-verify provide the flexibility
+needed for development, staging, and production environments.
+
+**Related requirements:** REQ-XC-TLS-010, REQ-XC-TLS-020
 
 ### DD-070: Ginkgo + Gomega for testing
 

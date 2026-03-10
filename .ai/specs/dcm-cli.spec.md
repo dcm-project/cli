@@ -27,17 +27,17 @@ This specification covers the `v1alpha1` API surface, matching the API Gateway r
 ### 2.1 System Context
 
 ```
-┌─────────┐       ┌──────────────────┐       ┌──────────────────┐
-│         │       │                  │       │ Policy Manager   │
-│  dcm    │──────▶│  API Gateway     │──────▶│ (port 8080)      │
-│  CLI    │ HTTP  │  (KrakenD 9080)  │       └──────────────────┘
-│         │       │                  │       ┌──────────────────┐
-└─────────┘       │                  │──────▶│ Catalog Manager  │
-                  └──────────────────┘       │ (port 8080)      │
-                                             └──────────────────┘
+┌─────────┐              ┌──────────────────┐       ┌──────────────────┐
+│         │              │                  │       │ Policy Manager   │
+│  dcm    │─────────────▶│  API Gateway     │──────▶│ (port 8080)      │
+│  CLI    │ HTTP / HTTPS │  (KrakenD 9080)  │       └──────────────────┘
+│         │              │                  │       ┌──────────────────┐
+└─────────┘              │                  │──────▶│ Catalog Manager  │
+                         └──────────────────┘       │ (port 8080)      │
+                                                    └──────────────────┘
 ```
 
-The CLI communicates exclusively through the API Gateway (KrakenD on port 9080). The gateway routes requests to the appropriate backend service based on URL path:
+The CLI communicates exclusively through the API Gateway (KrakenD on port 9080). When the API Gateway URL uses an `https://` scheme, the CLI establishes a TLS connection. When the URL uses `http://`, TLS is skipped entirely. The gateway routes requests to the appropriate backend service based on URL path:
 
 - `/api/v1alpha1/policies/*` → Policy Manager
 - `/api/v1alpha1/service-types/*` → Catalog Manager
@@ -86,6 +86,10 @@ Default location: `~/.dcm/config.yaml`
 api-gateway-url: http://localhost:9080
 output-format: table
 timeout: 30
+tls-ca-cert: ""
+tls-client-cert: ""
+tls-client-key: ""
+tls-skip-verify: false
 ```
 
 ### 3.2 Environment Variables
@@ -96,6 +100,10 @@ timeout: 30
 | `DCM_OUTPUT_FORMAT` | Output format (`table`, `json`, `yaml`) | `table` |
 | `DCM_TIMEOUT` | Request timeout in seconds | `30` |
 | `DCM_CONFIG` | Path to config file | `~/.dcm/config.yaml` |
+| `DCM_TLS_CA_CERT` | Path to CA certificate file for TLS verification | `""` |
+| `DCM_TLS_CLIENT_CERT` | Path to client certificate file for mTLS | `""` |
+| `DCM_TLS_CLIENT_KEY` | Path to client private key file for mTLS | `""` |
+| `DCM_TLS_SKIP_VERIFY` | Skip TLS certificate verification (`true`/`false`) | `false` |
 
 ### 3.3 Precedence Order
 
@@ -116,6 +124,10 @@ These flags are available on all commands:
 | `--output` | `-o` | Output format: `table`, `json`, `yaml` |
 | `--timeout` | | Request timeout in seconds |
 | `--config` | | Path to config file |
+| `--tls-ca-cert` | | Path to CA certificate file for TLS verification |
+| `--tls-client-cert` | | Path to client certificate file for mTLS |
+| `--tls-client-key` | | Path to client private key file for mTLS |
+| `--tls-skip-verify` | | Skip TLS certificate verification |
 
 ---
 
@@ -519,6 +531,10 @@ type Config struct {
     APIGatewayURL string `yaml:"api-gateway-url" mapstructure:"api-gateway-url"`
     OutputFormat  string `yaml:"output-format" mapstructure:"output-format"`
     Timeout       int    `yaml:"timeout" mapstructure:"timeout"`
+    TLSCACert     string `yaml:"tls-ca-cert" mapstructure:"tls-ca-cert"`
+    TLSClientCert string `yaml:"tls-client-cert" mapstructure:"tls-client-cert"`
+    TLSClientKey  string `yaml:"tls-client-key" mapstructure:"tls-client-key"`
+    TLSSkipVerify bool   `yaml:"tls-skip-verify" mapstructure:"tls-skip-verify"`
 }
 
 // Load reads configuration from file, environment, and flag overrides.
@@ -642,11 +658,14 @@ type ClientInterface interface {
 }
 ```
 
-Both clients are instantiated with the API Gateway URL:
+Both clients are instantiated with the API Gateway URL and a configured HTTP client. When the API Gateway URL uses `https://`, the HTTP client is configured with a TLS transport based on the TLS settings (CA cert, client cert/key, skip verify). When the URL uses `http://`, TLS is not configured.
 
 ```go
-policyClient, _ := policyclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1")
-catalogClient, _ := catalogclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1")
+httpClient := buildHTTPClient(cfg) // configures TLS transport when URL is https
+policyClient, _ := policyclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
+    policyclient.WithHTTPClient(httpClient))
+catalogClient, _ := catalogclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
+    catalogclient.WithHTTPClient(httpClient))
 ```
 
 ---
@@ -716,7 +735,9 @@ User invokes command
   │
   ├─▶ Viper resolves config (flags → env → file → defaults)
   │
-  ├─▶ Create generated client with API Gateway URL
+  ├─▶ Build HTTP client (configure TLS transport if URL is https://)
+  │
+  ├─▶ Create generated client with API Gateway URL and HTTP client
   │
   ├─▶ Execute API call via generated client
   │
@@ -798,9 +819,44 @@ For JSON/YAML output, `next_page_token` is included in the response object.
 
 ---
 
-## 8. Error Handling
+## 8. TLS Configuration
 
-### 8.1 Error Categories
+### 8.1 Protocol-Based TLS Behavior
+
+TLS is determined automatically by the API Gateway URL scheme:
+
+- **`http://`** — TLS is not used. All TLS-related flags and config are ignored.
+- **`https://`** — TLS is enabled. The CLI constructs a `tls.Config` and uses it for the HTTP transport.
+
+### 8.2 TLS Options
+
+| Option | Description |
+|--------|-------------|
+| `--tls-ca-cert` | Path to a PEM-encoded CA certificate file. Used to verify the server's certificate. When not set, the system's default CA bundle is used. |
+| `--tls-client-cert` | Path to a PEM-encoded client certificate file for mutual TLS (mTLS). Must be used together with `--tls-client-key`. |
+| `--tls-client-key` | Path to a PEM-encoded client private key file for mTLS. Must be used together with `--tls-client-cert`. |
+| `--tls-skip-verify` | When set, the CLI skips server certificate verification. **Not recommended for production.** |
+
+### 8.3 Validation Rules
+
+- If `--tls-client-cert` is set, `--tls-client-key` MUST also be set (and vice versa). The CLI MUST exit with code 2 if only one is provided.
+- TLS flags are silently ignored when the API Gateway URL uses `http://`.
+- If the CA cert, client cert, or client key file does not exist or is not readable, the CLI MUST exit with code 1 with a clear error message.
+
+### 8.4 Configuration Precedence
+
+TLS options follow the same precedence as other configuration:
+
+1. CLI flags (`--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify`)
+2. Environment variables (`DCM_TLS_CA_CERT`, `DCM_TLS_CLIENT_CERT`, `DCM_TLS_CLIENT_KEY`, `DCM_TLS_SKIP_VERIFY`)
+3. Configuration file (`tls-ca-cert`, `tls-client-cert`, `tls-client-key`, `tls-skip-verify`)
+4. Built-in defaults (empty strings, `false`)
+
+---
+
+## 9. Error Handling
+
+### 9.1 Error Categories
 
 | Category | Description | Exit Code |
 |----------|-------------|-----------|
@@ -810,7 +866,7 @@ For JSON/YAML output, `next_page_token` is included in the response object.
 | Input error | Invalid flags, missing arguments, bad file | 2 |
 | Timeout | Request exceeded timeout | 1 |
 
-### 8.2 API Error Display
+### 9.2 API Error Display
 
 API errors follow RFC 7807 Problem Details format. The CLI parses the response and displays a human-readable error:
 
@@ -831,7 +887,7 @@ For JSON/YAML output, the full Problem Details object is printed:
 }
 ```
 
-### 8.3 Exit Codes
+### 9.3 Exit Codes
 
 | Code | Meaning |
 |------|---------|
@@ -841,9 +897,9 @@ For JSON/YAML output, the full Problem Details object is printed:
 
 ---
 
-## 9. Build and Distribution
+## 10. Build and Distribution
 
-### 9.1 Makefile Targets
+### 10.1 Makefile Targets
 
 ```makefile
 build          # Build dcm binary to bin/dcm
@@ -856,7 +912,7 @@ clean          # Remove build artifacts
 tidy           # Run go mod tidy
 ```
 
-### 9.2 Version Injection
+### 10.2 Version Injection
 
 Version information is injected at build time via ldflags:
 
@@ -873,7 +929,7 @@ build:
 	go build -ldflags "$(LDFLAGS)" -o bin/dcm ./cmd/dcm
 ```
 
-### 9.3 Containerfile
+### 10.3 Containerfile
 
 Multi-stage UBI9 build matching other DCM services:
 
@@ -893,7 +949,7 @@ USER 1001
 ENTRYPOINT ["dcm"]
 ```
 
-### 9.4 Go Module
+### 10.4 Go Module
 
 ```
 module github.com/dcm-project/dcm-cli
@@ -901,7 +957,7 @@ module github.com/dcm-project/dcm-cli
 go 1.25.5
 ```
 
-### 9.5 Dependencies
+### 10.5 Dependencies
 
 | Dependency | Purpose |
 |------------|---------|
@@ -913,7 +969,7 @@ go 1.25.5
 | `github.com/onsi/ginkgo/v2` | Test framework (test dependency) |
 | `github.com/onsi/gomega` | Test matchers (test dependency) |
 
-### 9.6 tools.go
+### 10.6 tools.go
 
 ```go
 //go:build tools
@@ -927,9 +983,9 @@ import (
 
 ---
 
-## 10. Testing Strategy
+## 11. Testing Strategy
 
-### 10.1 Unit Tests
+### 11.1 Unit Tests
 
 - **Framework**: Ginkgo + Gomega
 - **Location**: `*_test.go` files alongside source
@@ -975,7 +1031,7 @@ make test                          # All unit tests
 go test -run TestName ./internal/commands  # Specific test
 ```
 
-### 10.2 E2E Tests
+### 11.2 E2E Tests
 
 - **Location**: `test/e2e/`
 - **Build tag**: `//go:build e2e` (excluded from `make test`)
@@ -991,9 +1047,9 @@ make test-e2e   # Requires DCM_API_GATEWAY_URL pointing to live stack
 
 ---
 
-## 11. Scope Boundaries
+## 12. Scope Boundaries
 
-### 11.1 In Scope (v1alpha1)
+### 12.1 In Scope (v1alpha1)
 
 - Policy CRUD operations (create, list, get, update, delete)
 - Service type read operations (list, get)
@@ -1003,9 +1059,10 @@ make test-e2e   # Requires DCM_API_GATEWAY_URL pointing to live stack
 - Output formatting (table, JSON, YAML)
 - Configuration via file, environment variables, and flags
 - Pagination support for list operations
+- TLS support with custom CA certificates, client certificates (mTLS), and skip-verify
 - Container image for distribution
 
-### 11.2 Out of Scope (v1alpha1)
+### 12.2 Out of Scope (v1alpha1)
 
 - Authentication and authorization (no auth in v1alpha1 API Gateway)
 - Interactive/wizard-style resource creation

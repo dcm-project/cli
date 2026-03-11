@@ -306,6 +306,8 @@ Out of scope: color output, custom column selection, template-based formatting.
 | REQ-OUT-080 | For JSON/YAML list output, `next_page_token` MUST be included in the response object when present | MUST | |
 | REQ-OUT-090 | For table list output, when `next_page_token` is present, a pagination hint MUST be displayed showing the next command to run | MUST | |
 | REQ-OUT-100 | The CLI MUST reject invalid output format values with a usage error | MUST | |
+| REQ-OUT-110 | All success output (resources, lists, status messages) MUST be written to stdout. All error output (API errors, connection errors, usage errors) MUST be written to stderr. | MUST | |
+| REQ-OUT-120 | The output formatter MUST support rendering API errors: for table output, errors MUST be formatted per REQ-XC-ERR-020; for JSON/YAML output, the full error object MUST be rendered per REQ-XC-ERR-030 | MUST | See §5.1 |
 
 #### Acceptance Criteria
 
@@ -347,17 +349,25 @@ Out of scope: color output, custom column selection, template-based formatting.
 
 ##### AC-OUT-060: Invalid output format
 
-- **Validates:** REQ-OUT-100
+- **Validates:** REQ-OUT-100, REQ-OUT-110
 - **Given** `--output invalid` is provided
 - **When** the CLI processes the flag
 - **Then** the CLI MUST exit with code 2 and display a usage error
 
 ##### AC-OUT-070: Status message formatting
 
-- **Validates:** REQ-OUT-050
+- **Validates:** REQ-OUT-050, REQ-OUT-110
 - **Given** a delete command succeeds
 - **When** `FormatMessage` is called
-- **Then** the message MUST be displayed to stdout (e.g., `Policy "my-policy" deleted successfully.`)
+- **Then** the message MUST be written to stdout (e.g., `Policy "my-policy" deleted successfully.`)
+
+##### AC-OUT-080: Error output to stderr
+
+- **Validates:** REQ-OUT-110, REQ-OUT-120
+- **Given** a command encounters an API error or connection error
+- **When** the error is displayed
+- **Then** the error output MUST be written to stderr (not stdout)
+- **And** the error MUST be formatted according to the configured output format (table, JSON, or YAML)
 
 #### Dependencies
 
@@ -962,6 +972,7 @@ Depends on Topic 1 (CLI Framework).
 | REQ-XC-ERR-040 | Connection errors (cannot reach API Gateway) MUST be displayed with a clear error message and exit code 1 | MUST | |
 | REQ-XC-ERR-050 | Timeout errors MUST be displayed with a clear error message and exit code 1 | MUST | |
 | REQ-XC-ERR-060 | Configuration errors MUST result in exit code 1 | MUST | |
+| REQ-XC-ERR-070 | If an API error response does not conform to RFC 7807 (e.g., a raw 502 from the API Gateway), the CLI MUST display the HTTP status code and response body as a plain error message and exit with code 1 | MUST | |
 
 #### Acceptance Criteria
 
@@ -992,7 +1003,15 @@ Depends on Topic 1 (CLI Framework).
 - **Then** the CLI MUST display a connection error message
 - **And** exit with code 1
 
-##### AC-XC-ERR-040: Timeout error
+##### AC-XC-ERR-040: Non-RFC-7807 error response
+
+- **Validates:** REQ-XC-ERR-070
+- **Given** the API Gateway returns a non-RFC-7807 response (e.g., a raw 502 Bad Gateway with HTML or plain text body)
+- **When** the CLI processes the error
+- **Then** the CLI MUST display the HTTP status code and response body as a plain error message
+- **And** exit with code 1
+
+##### AC-XC-ERR-050: Timeout error
 
 - **Validates:** REQ-XC-ERR-050
 - **Given** a request exceeds the configured timeout
@@ -1281,18 +1300,20 @@ provides reliable HTTP mocking without external dependencies.
 
 ### DD-090: Formatter interface design
 
-**Decision:** The output formatting layer exposes three methods: `FormatOne`
-(single resource), `FormatList` (resource list with pagination), and
-`FormatMessage` (status message). All commands use this interface to render
-output.
+**Decision:** The output formatting layer exposes four methods: `FormatOne`
+(single resource), `FormatList` (resource list with pagination), `FormatMessage`
+(status message), and `FormatError` (API/connection errors). All commands use
+this interface to render output. Error output is written to stderr; all other
+output is written to stdout.
 
-**Rationale:** Three distinct formatting paths cover all CLI output scenarios:
-detail views, list views with pagination, and action confirmations. A single
-interface keeps command implementations uniform and makes adding new output
-formats straightforward.
+**Rationale:** Four distinct formatting paths cover all CLI output scenarios:
+detail views, list views with pagination, action confirmations, and error
+display. A single interface keeps command implementations uniform and makes
+adding new output formats straightforward. Separating stderr for errors ensures
+that piped stdout output is never polluted by error messages.
 
 **Related requirements:** REQ-OUT-050, REQ-OUT-060, REQ-OUT-070, REQ-OUT-080,
-REQ-OUT-090
+REQ-OUT-090, REQ-OUT-110, REQ-OUT-120
 
 ---
 
@@ -1300,16 +1321,16 @@ REQ-OUT-090
 
 | Prefix | Topic | Count |
 |--------|-------|-------|
-| REQ-CLI-NNN | 4.1: CLI Framework & Entry Point | 6 |
+| REQ-CLI-NNN | 4.1: CLI Framework & Entry Point | 7 |
 | REQ-CFG-NNN | 4.2: Configuration Management | 7 |
-| REQ-OUT-NNN | 4.3: Output Formatting | 9 |
+| REQ-OUT-NNN | 4.3: Output Formatting | 12 |
 | REQ-POL-NNN | 4.4: Policy Commands | 13 |
 | REQ-CST-NNN | 4.5: Catalog Service-Type Commands | 5 |
 | REQ-CIT-NNN | 4.6: Catalog Item Commands | 11 |
 | REQ-CIN-NNN | 4.7: Catalog Instance Commands | 11 |
 | REQ-VER-NNN | 4.8: Version Command | 3 |
-| REQ-XC-ERR-NNN | 5.1: Error Handling | 6 |
+| REQ-XC-ERR-NNN | 5.1: Error Handling | 7 |
 | REQ-XC-INP-NNN | 5.2: Input File Parsing | 3 |
 | REQ-XC-CLI-NNN | 5.3: Generated Client Usage | 4 |
 | REQ-XC-PAG-NNN | 5.4: Pagination | 3 |
-| **Total** | | **83** |
+| **Total** | | **88** |

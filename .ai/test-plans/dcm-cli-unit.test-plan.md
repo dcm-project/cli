@@ -4,7 +4,7 @@
 
 - **Related Spec:** .ai/specs/dcm-cli.spec.md
 - **Related Plan:** .ai/plan/dcm-cli.plan.md
-- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–100, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-VER-010–030, REQ-XC-ERR-010–060, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
+- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–120, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-VER-010–030, REQ-XC-ERR-010–070, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
 - **Framework:** Ginkgo v2 + Gomega
 - **Created:** 2026-03-09
 
@@ -206,12 +206,48 @@ test classes. Instead:
 
 ### TC-U018: FormatMessage displays status message
 
-- **Requirement:** REQ-OUT-040
+- **Requirement:** REQ-OUT-040, REQ-OUT-110
 - **Acceptance Criteria:** AC-OUT-070
 - **Type:** Unit
 - **Given:** A status message `Policy "my-policy" deleted successfully.`
 - **When:** `FormatMessage` is called
-- **Then:** The message is written to stdout exactly as provided
+- **Then:** The message is written to stdout exactly as provided AND nothing is written to stderr
+
+### TC-U116: Error output written to stderr
+
+- **Requirement:** REQ-OUT-110, REQ-OUT-120
+- **Acceptance Criteria:** AC-OUT-080
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body
+- **When:** `dcm policy get nonexistent` is executed
+- **Then:** The error output is written to stderr AND stdout is empty
+
+### TC-U117: FormatError renders error in table format
+
+- **Requirement:** REQ-OUT-120, REQ-XC-ERR-020
+- **Acceptance Criteria:** AC-OUT-080, AC-XC-ERR-010
+- **Type:** Unit
+- **Given:** An RFC 7807 error object with type, status, title, and detail
+- **When:** `FormatError` is called with format `table`
+- **Then:** The error is rendered to stderr in the format: `Error: <TYPE> - <TITLE>`, `Status: <STATUS>`, `Detail: <DETAIL>`
+
+### TC-U118: FormatError renders error in JSON format
+
+- **Requirement:** REQ-OUT-120, REQ-XC-ERR-030
+- **Acceptance Criteria:** AC-OUT-080, AC-XC-ERR-020
+- **Type:** Unit
+- **Given:** An RFC 7807 error object
+- **When:** `FormatError` is called with format `json`
+- **Then:** The full Problem Details JSON object is written to stderr
+
+### TC-U119: FormatError renders error in YAML format
+
+- **Requirement:** REQ-OUT-120, REQ-XC-ERR-030
+- **Acceptance Criteria:** AC-OUT-080, AC-XC-ERR-020
+- **Type:** Unit
+- **Given:** An RFC 7807 error object
+- **When:** `FormatError` is called with format `yaml`
+- **Then:** The full Problem Details YAML object is written to stderr
 
 ---
 
@@ -952,36 +988,36 @@ test classes. Instead:
 
 ### TC-U080: API error displayed in table format
 
-- **Requirement:** REQ-XC-ERR-010, REQ-XC-ERR-020
-- **Acceptance Criteria:** AC-XC-ERR-010
+- **Requirement:** REQ-XC-ERR-010, REQ-XC-ERR-020, REQ-OUT-110
+- **Acceptance Criteria:** AC-XC-ERR-010, AC-OUT-080
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body: `{"type":"NOT_FOUND","status":404,"title":"Policy \"nonexistent\" not found.","detail":"The requested policy resource does not exist."}`
 - **When:** `dcm policy get nonexistent` is executed with `--output table`
-- **Then:** The CLI displays:
+- **Then:** The CLI displays to stderr:
   ```
   Error: NOT_FOUND - Policy "nonexistent" not found.
     Status: 404
     Detail: The requested policy resource does not exist.
   ```
-- **And** the CLI exits with code 1
+- **And** stdout is empty AND the CLI exits with code 1
 
 ### TC-U081: API error displayed in JSON format
 
-- **Requirement:** REQ-XC-ERR-030
-- **Acceptance Criteria:** AC-XC-ERR-020
+- **Requirement:** REQ-XC-ERR-030, REQ-OUT-110
+- **Acceptance Criteria:** AC-XC-ERR-020, AC-OUT-080
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body
 - **When:** `dcm policy get nonexistent -o json` is executed
-- **Then:** The full Problem Details JSON object is printed to stderr
+- **Then:** The full Problem Details JSON object is printed to stderr AND stdout is empty
 
 ### TC-U082: API error displayed in YAML format
 
-- **Requirement:** REQ-XC-ERR-030
-- **Acceptance Criteria:** AC-XC-ERR-020
+- **Requirement:** REQ-XC-ERR-030, REQ-OUT-110
+- **Acceptance Criteria:** AC-XC-ERR-020, AC-OUT-080
 - **Type:** Unit
 - **Given:** A mock server returning 404 with RFC 7807 body
 - **When:** `dcm policy get nonexistent -o yaml` is executed
-- **Then:** The full Problem Details YAML object is printed to stderr
+- **Then:** The full Problem Details YAML object is printed to stderr AND stdout is empty
 
 ### TC-U083: Connection error displays clear message
 
@@ -992,10 +1028,19 @@ test classes. Instead:
 - **When:** `dcm policy list` is executed
 - **Then:** The CLI displays a connection error message AND exits with code 1
 
+### TC-U120: Non-RFC-7807 error response
+
+- **Requirement:** REQ-XC-ERR-070
+- **Acceptance Criteria:** AC-XC-ERR-040
+- **Type:** Unit
+- **Given:** A mock server returning 502 with a plain text body (not RFC 7807 JSON)
+- **When:** `dcm policy list` is executed
+- **Then:** The CLI displays the HTTP status code and response body as a plain error message to stderr AND exits with code 1
+
 ### TC-U084: Timeout error displays clear message
 
 - **Requirement:** REQ-XC-ERR-050
-- **Acceptance Criteria:** AC-XC-ERR-040
+- **Acceptance Criteria:** AC-XC-ERR-050
 - **Type:** Unit
 - **Given:** A mock server that delays longer than the configured timeout AND `--timeout 1` is set
 - **When:** `dcm policy list` is executed
@@ -1197,6 +1242,8 @@ dedicated test class or `Describe` block.
 | REQ-OUT-080     | TC-U014, TC-U015                                    | Covered |
 | REQ-OUT-090     | TC-U013, TC-U016                                    | Covered |
 | REQ-OUT-100     | TC-U017                                             | Covered |
+| REQ-OUT-110     | TC-U018, TC-U116, TC-U117, TC-U118, TC-U119, TC-U080, TC-U081, TC-U082 | Covered |
+| REQ-OUT-120     | TC-U116, TC-U117, TC-U118, TC-U119                  | Covered |
 | REQ-POL-010     | TC-U026, TC-U027                                    | Covered |
 | REQ-POL-020     | TC-U028                                             | Covered |
 | REQ-POL-030     | TC-U026                                             | Covered |
@@ -1246,6 +1293,7 @@ dedicated test class or `Describe` block.
 | REQ-XC-ERR-040  | TC-U083                                             | Covered |
 | REQ-XC-ERR-050  | TC-U084                                             | Covered |
 | REQ-XC-ERR-060  | TC-U085                                             | Covered |
+| REQ-XC-ERR-070  | TC-U120                                             | Covered |
 | REQ-XC-INP-010  | TC-U060 (via TC-U026), TC-U061 (via TC-U027)         | Covered |
 | REQ-XC-INP-020  | TC-U060 (via TC-U026), TC-U061 (via TC-U027)         | Covered |
 | REQ-XC-INP-030  | TC-U062 (via TC-U026), TC-U063 (via TC-U026)         | Covered |
@@ -1266,7 +1314,7 @@ dedicated test class or `Describe` block.
 | REQ-XC-TLS-070  | TC-U095, TC-U096                                    | Covered |
 | REQ-XC-TLS-080  | TC-U090, TC-U097                                    | Covered |
 
-**Total:** 80 test case IDs — 58 in behavioural test classes, 22 in the utility
+**Total:** 85 test case IDs — 63 in behavioural test classes, 22 in the utility
 index (tested transitively through higher-level behavioural tests).
 
 ---

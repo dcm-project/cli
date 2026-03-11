@@ -131,7 +131,6 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-CLI-010 | The CLI MUST use Cobra as the command framework | MUST | |
 | REQ-CLI-020 | The CLI MUST define a root command `dcm` with global flags | MUST | |
 | REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `version` | MUST | |
 | REQ-CLI-040 | The `catalog` command MUST register subcommand groups: `service-type`, `item`, `instance` | MUST | |
@@ -140,13 +139,6 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 | REQ-CLI-070 | The entry point (`cmd/dcm/main.go`) MUST bootstrap the root command and execute it | MUST | |
 
 #### Acceptance Criteria
-
-##### AC-CLI-010: Cobra framework usage
-
-- **Validates:** REQ-CLI-010
-- **Given** the CLI binary is built
-- **When** `dcm --help` is invoked
-- **Then** Cobra-generated help text MUST be displayed
 
 ##### AC-CLI-020: Root command with global flags
 
@@ -308,7 +300,6 @@ Out of scope: color output, custom column selection, template-based formatting.
 | REQ-OUT-010 | The CLI MUST support three output formats: `table`, `json`, `yaml` | MUST | |
 | REQ-OUT-020 | The default output format MUST be `table` | MUST | |
 | REQ-OUT-030 | The output format MUST be selectable via `--output`/`-o` flag | MUST | |
-| REQ-OUT-040 | The `Formatter` interface MUST support `FormatOne` (single resource), `FormatList` (resource list with pagination), and `FormatMessage` (status message) | MUST | |
 | REQ-OUT-050 | Table output MUST display resources in a tabular format with fixed column headers per resource type. Columns MUST NOT vary based on response content. If a field is absent from a response, an empty cell MUST be displayed. | MUST | |
 | REQ-OUT-060 | JSON output MUST produce valid, parseable JSON | MUST | |
 | REQ-OUT-070 | YAML output MUST produce valid, parseable YAML | MUST | |
@@ -363,7 +354,7 @@ Out of scope: color output, custom column selection, template-based formatting.
 
 ##### AC-OUT-070: Status message formatting
 
-- **Validates:** REQ-OUT-040
+- **Validates:** REQ-OUT-050
 - **Given** a delete command succeeds
 - **When** `FormatMessage` is called
 - **Then** the message MUST be displayed to stdout (e.g., `Policy "my-policy" deleted successfully.`)
@@ -1214,8 +1205,10 @@ management.
 **Rationale:** Industry-standard Go CLI stack. Cobra provides command parsing,
 help generation, and argument validation. Viper provides layered configuration
 with file, environment, and flag support matching the required precedence order.
+This is a foundational technology choice — all command definitions, flag
+parsing, and help generation depend on Cobra.
 
-**Related requirements:** REQ-CLI-010, REQ-CFG-060
+**Related requirements:** REQ-CFG-060
 
 ### DD-030: Single API Gateway endpoint
 
@@ -1286,15 +1279,30 @@ provides reliable HTTP mocking without external dependencies.
 
 **Related requirements:** All test-related acceptance criteria
 
+### DD-090: Formatter interface design
+
+**Decision:** The output formatting layer exposes three methods: `FormatOne`
+(single resource), `FormatList` (resource list with pagination), and
+`FormatMessage` (status message). All commands use this interface to render
+output.
+
+**Rationale:** Three distinct formatting paths cover all CLI output scenarios:
+detail views, list views with pagination, and action confirmations. A single
+interface keeps command implementations uniform and makes adding new output
+formats straightforward.
+
+**Related requirements:** REQ-OUT-050, REQ-OUT-060, REQ-OUT-070, REQ-OUT-080,
+REQ-OUT-090
+
 ---
 
 ## 8. Requirement ID Index
 
 | Prefix | Topic | Count |
 |--------|-------|-------|
-| REQ-CLI-NNN | 4.1: CLI Framework & Entry Point | 7 |
+| REQ-CLI-NNN | 4.1: CLI Framework & Entry Point | 6 |
 | REQ-CFG-NNN | 4.2: Configuration Management | 7 |
-| REQ-OUT-NNN | 4.3: Output Formatting | 10 |
+| REQ-OUT-NNN | 4.3: Output Formatting | 9 |
 | REQ-POL-NNN | 4.4: Policy Commands | 13 |
 | REQ-CST-NNN | 4.5: Catalog Service-Type Commands | 5 |
 | REQ-CIT-NNN | 4.6: Catalog Item Commands | 11 |
@@ -1304,4 +1312,4 @@ provides reliable HTTP mocking without external dependencies.
 | REQ-XC-INP-NNN | 5.2: Input File Parsing | 3 |
 | REQ-XC-CLI-NNN | 5.3: Generated Client Usage | 4 |
 | REQ-XC-PAG-NNN | 5.4: Pagination | 3 |
-| **Total** | | **85** |
+| **Total** | | **83** |

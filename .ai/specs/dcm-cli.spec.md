@@ -781,6 +781,13 @@ dcm catalog instance create --from-file instance.yaml
 
 ### 7.4 Pagination
 
+#### 7.4.1 Page Size
+
+While `--page-size` is an optional parameter, services may impose a default value. Always check if
+the response included `next_page_token`
+
+#### 7.4.2 Next Page Token
+
 When a list response includes `next_page_token`, the CLI displays it for manual follow-up:
 
 ```

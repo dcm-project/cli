@@ -244,10 +244,10 @@ Get a single policy by ID.
 | `POLICY_ID` | Yes | Policy ID |
 
 ```bash
-dcm policy get my-policy
+dcm policy get POLICY_ID
 
 # YAML output
-dcm policy get my-policy -o yaml
+dcm policy get POLICY_ID -o yaml
 ```
 
 #### `dcm policy update`
@@ -263,7 +263,7 @@ Update an existing policy (JSON Merge Patch - RFC 7396).
 | `--from-file` | Yes | Path to patch YAML/JSON file |
 
 ```bash
-dcm policy update my-policy --from-file patch.yaml
+dcm policy update POLICY_ID --from-file patch.yaml
 ```
 
 Patch file (only mutable fields):
@@ -285,7 +285,7 @@ Delete a policy by ID.
 | `POLICY_ID` | Yes | Policy ID |
 
 ```bash
-dcm policy delete my-policy
+dcm policy delete POLICY_ID
 ```
 
 Example output:
@@ -319,7 +319,7 @@ Get a single service type by ID.
 | `SERVICE_TYPE_ID` | Yes | Service type ID |
 
 ```bash
-dcm catalog service-type get my-service-type
+dcm catalog service-type get SERVICE_TYPE_ID
 ```
 
 ### 4.4 Catalog Item Commands
@@ -390,8 +390,8 @@ Get a single catalog item by ID.
 | `CATALOG_ITEM_ID` | Yes | Catalog item ID |
 
 ```bash
-dcm catalog item get my-catalog-item
-dcm catalog item get my-catalog-item -o yaml
+dcm catalog item get CATALOG_ITEM_ID
+dcm catalog item get CATALOG_ITEM_ID -o yaml
 ```
 
 #### `dcm catalog item delete`
@@ -403,7 +403,7 @@ Delete a catalog item by ID.
 | `CATALOG_ITEM_ID` | Yes | Catalog item ID |
 
 ```bash
-dcm catalog item delete my-catalog-item
+dcm catalog item delete CATALOG_ITEM_ID
 ```
 
 ### 4.5 Catalog Instance Commands
@@ -465,7 +465,7 @@ Get a single catalog item instance by ID.
 | `INSTANCE_ID` | Yes | Instance ID |
 
 ```bash
-dcm catalog instance get my-instance
+dcm catalog instance get INSTANCE_ID
 ```
 
 #### `dcm catalog instance delete`
@@ -477,7 +477,7 @@ Delete a catalog item instance by ID.
 | `INSTANCE_ID` | Yes | Instance ID |
 
 ```bash
-dcm catalog instance delete my-instance
+dcm catalog instance delete INSTANCE_ID
 ```
 
 ### 4.6 Version Command

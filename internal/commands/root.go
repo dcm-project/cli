@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dcm-project/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +25,14 @@ func NewRootCommand() *cobra.Command {
 		SilenceErrors: true,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
+		},
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := config.Load(cmd)
+			if err != nil {
+				return err
+			}
+			cmd.SetContext(config.WithConfig(cmd.Context(), cfg))
+			return nil
 		},
 	}
 

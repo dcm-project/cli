@@ -13,11 +13,21 @@ import (
 	"strings"
 	"time"
 
+	catalogclient "github.com/dcm-project/catalog-manager/pkg/client"
+
 	"github.com/dcm-project/cli/internal/config"
 	"github.com/dcm-project/cli/internal/output"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
 )
+
+func newCatalogClient(cfg *config.Config) (*catalogclient.Client, error) {
+	httpClient, err := buildHTTPClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return catalogclient.NewClient(apiBaseURL(cfg), catalogclient.WithHTTPClient(httpClient))
+}
 
 // FormattedError indicates an error that has already been formatted and
 // written to stderr. Execute() should not print it again.

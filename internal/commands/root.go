@@ -65,7 +65,10 @@ func Execute() {
 	cmd := NewRootCommand()
 	err := cmd.Execute()
 	if err != nil {
-		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+		var fmtErr *FormattedError
+		if !errors.As(err, &fmtErr) {
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+		}
 		os.Exit(getExitCode(err))
 	}
 }
@@ -100,4 +103,14 @@ func ExactArgs(n int) cobra.PositionalArgs {
 		}
 		return nil
 	}
+}
+
+// requiredFlagsPreRun is a PreRunE hook that wraps Cobra's required-flag
+// validation errors as UsageError (exit code 2). Cobra's own
+// ValidateRequiredFlags call that follows PreRunE becomes a no-op.
+func requiredFlagsPreRun(cmd *cobra.Command, _ []string) error {
+	if err := cmd.ValidateRequiredFlags(); err != nil {
+		return &UsageError{Err: err}
+	}
+	return nil
 }

@@ -1,0 +1,17 @@
+name: Tag Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yaml
+
+  lint:
+    uses: ./.github/workflows/lint.yaml
+
+  release:
+    needs: [ci, lint]
+    uses: ./.github/workflows/release.yaml

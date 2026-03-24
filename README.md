@@ -693,7 +693,12 @@ dcm-cli/
 │       └── e2e_suite_test.go
 ├── .github/
 │   └── workflows/
-│       └── ci.yaml
+│       ├── ci.yaml
+│       ├── lint.yaml
+│       ├── check-clean-commits.yaml
+│       ├── release.yaml
+│       └── tag-release.yaml
+├── .goreleaser.yaml
 ├── CLAUDE.md
 ├── Containerfile
 ├── go.mod
@@ -918,7 +923,23 @@ build:
 	go build -ldflags "$(LDFLAGS)" -o bin/dcm ./cmd/dcm
 ```
 
-### 10.3 Containerfile
+### 10.3 Release
+
+Releases are automated via GoReleaser and GitHub Actions. When a `v*` tag is pushed, the `tag-release` workflow runs CI tests and linting, then triggers the `release` workflow which uses GoReleaser to:
+
+- Build `dcm` binaries for linux, darwin, and windows (amd64 and arm64)
+- Inject version, commit, and build time via ldflags
+- Create a GitHub release with archives and checksums
+- Include the LICENSE in each archive
+
+To create a release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+### 10.4 Containerfile
 
 Multi-stage UBI9 build matching other DCM services:
 
@@ -938,7 +959,7 @@ USER 1001
 ENTRYPOINT ["dcm"]
 ```
 
-### 10.4 Go Module
+### 10.5 Go Module
 
 ```
 module github.com/dcm-project/dcm-cli
@@ -946,7 +967,7 @@ module github.com/dcm-project/dcm-cli
 go 1.25.5
 ```
 
-### 10.5 Dependencies
+### 10.6 Dependencies
 
 | Dependency | Purpose |
 |------------|---------|
@@ -958,7 +979,7 @@ go 1.25.5
 | `github.com/onsi/ginkgo/v2` | Test framework (test dependency) |
 | `github.com/onsi/gomega` | Test matchers (test dependency) |
 
-### 10.6 tools.go
+### 10.7 tools.go
 
 ```go
 //go:build tools

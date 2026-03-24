@@ -3,6 +3,7 @@ module github.com/dcm-project/cli
 go 1.25.5
 
 require (
+	github.com/dcm-project/catalog-manager v0.0.0-20260313160905-1ff110850088
 	github.com/dcm-project/policy-manager v0.0.0-20260310132113-15bd45617e87
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1

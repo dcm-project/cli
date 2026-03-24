@@ -4,7 +4,7 @@
 
 - **Related Spec:** .ai/specs/dcm-cli.spec.md
 - **Related Plan:** .ai/plan/dcm-cli.plan.md
-- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–120, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-VER-010–030, REQ-XC-ERR-010–070, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
+- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–120, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-SPR-010–050, REQ-VER-010–030, REQ-XC-ERR-010–070, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
 - **Framework:** Ginkgo v2 + Gomega
 - **Created:** 2026-03-09
 
@@ -262,7 +262,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** The root command is created via `NewRootCommand()`
 - **When:** `dcm --help` is executed
-- **Then:** Subcommands `policy`, `catalog`, and `version` are listed in the help output
+- **Then:** Subcommands `policy`, `catalog`, `sp`, and `version` are listed in the help output
 
 ### TC-U020: Catalog command registers subcommand groups
 
@@ -272,6 +272,15 @@ test classes. Instead:
 - **Given:** The root command is created
 - **When:** `dcm catalog --help` is executed
 - **Then:** Subcommands `service-type`, `item`, and `instance` are listed
+
+### TC-U129: SP command registers subcommand groups
+
+- **Requirement:** REQ-CLI-030
+- **Acceptance Criteria:** AC-CLI-030
+- **Type:** Unit
+- **Given:** The root command is created
+- **When:** `dcm sp --help` is executed
+- **Then:** Subcommand `resource` is listed
 
 ### TC-U021: Global flags are registered
 
@@ -863,7 +872,89 @@ test classes. Instead:
 
 ---
 
-## 9 · TLS Configuration
+## 9 · SP Resource Commands
+
+> **Suggested Ginkgo structure:** `Describe("SP Resource Commands")` with
+> nested `Describe` per subcommand. All tests use `net/http/httptest` to mock
+> the generated client's HTTP calls.
+
+### TC-U121: List SP resources
+
+- **Requirement:** REQ-SPR-010, REQ-SPR-020
+- **Acceptance Criteria:** AC-SPR-010
+- **Type:** Unit
+- **Transitively covers:** TC-U131 (generated SP Resource Manager client usage)
+- **Given:** A mock server returning 200 with a list of SP resources
+- **When:** `dcm sp resource list` is executed
+- **Then:** A GET request is sent to `/api/v1alpha1/service-type-instances` AND the SP resources are displayed in the configured output format
+
+### TC-U122: List SP resources with pagination
+
+- **Requirement:** REQ-SPR-010
+- **Acceptance Criteria:** AC-SPR-020
+- **Type:** Unit
+- **Transitively covers:** TC-U069 (pagination flags present)
+- **Given:** A mock server
+- **When:** `dcm sp resource list --page-size 5` is executed
+- **Then:** The GET request includes `max_page_size=5` as a query parameter
+
+### TC-U123: List SP resources with provider filter
+
+- **Requirement:** REQ-SPR-010
+- **Acceptance Criteria:** AC-SPR-030
+- **Type:** Unit
+- **Given:** A mock server
+- **When:** `dcm sp resource list --provider kubevirt-123` is executed
+- **Then:** The GET request includes `provider=kubevirt-123` as a query parameter
+
+### TC-U124: Get SP resource
+
+- **Requirement:** REQ-SPR-030
+- **Acceptance Criteria:** AC-SPR-040
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an SP resource
+- **When:** `dcm sp resource get my-instance` is executed
+- **Then:** A GET request is sent to `/api/v1alpha1/service-type-instances/my-instance` AND the SP resource is displayed
+
+### TC-U125: Get SP resource without INSTANCE_ID fails
+
+- **Requirement:** REQ-SPR-040
+- **Acceptance Criteria:** AC-SPR-050
+- **Type:** Unit
+- **Given:** No positional argument is provided
+- **When:** `dcm sp resource get` is executed
+- **Then:** The CLI exits with code 2 and displays a usage error
+
+### TC-U126: List SP resources returns empty list
+
+- **Requirement:** REQ-SPR-010, REQ-SPR-020
+- **Acceptance Criteria:** AC-SPR-060
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an empty SP resource list (`{"instances":[],"next_page_token":""}`)
+- **When:** `dcm sp resource list` is executed
+- **Then:** An empty result is displayed (empty table with headers only for table format, empty array for JSON, empty list for YAML)
+
+### TC-U127: Get non-existent SP resource
+
+- **Requirement:** REQ-SPR-030, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-SPR-070, AC-XC-ERR-010
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for instance ID `nonexistent`
+- **When:** `dcm sp resource get nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U128: SP resource table output columns
+
+- **Requirement:** REQ-OUT-050
+- **Acceptance Criteria:** AC-OUT-010
+- **Type:** Unit
+- **Given:** A mock server returning an SP resource with all fields populated
+- **When:** `dcm sp resource get my-instance` is executed with `--output table`
+- **Then:** The table output includes columns: ID, PROVIDER, STATUS, CREATED
+
+---
+
+## 10 · TLS Configuration
 
 > **Suggested Ginkgo structure:** `Describe("TLS Configuration")` with `Context`
 > per scenario. Tests use `net/http/httptest` with TLS-enabled servers where
@@ -979,7 +1070,7 @@ test classes. Instead:
 
 ---
 
-## 10 · Error Handling
+## 11 · Error Handling
 
 > **Suggested Ginkgo structure:** `Describe("Error Handling")` with `Context`
 > per error type. Tests exercise error paths through command execution with
@@ -1148,6 +1239,26 @@ dedicated test class or `Describe` block.
 - **Then:** The generated Catalog Manager client is used (verified by mock server receiving correctly structured requests)
 - **Referenced by:** TC-U042 (service-type list), TC-U044 (service-type get), TC-U046 (item create), TC-U058 (instance create)
 
+#### TC-U130: SP Resource Manager client instantiated with correct URL
+
+- **Requirement:** REQ-XC-CLI-025, REQ-XC-CLI-030
+- **Acceptance Criteria:** AC-XC-CLI-010
+- **Type:** Unit
+- **Given:** The API Gateway URL is `http://localhost:9080`
+- **When:** The SP Resource Manager client is created
+- **Then:** The client base URL is `http://localhost:9080/api/v1alpha1`
+- **Referenced by:** TC-U121 (list SP resources verifies request goes to correct URL path)
+
+#### TC-U131: SP Resource Manager generated client used for SP resource operations
+
+- **Requirement:** REQ-XC-CLI-025, REQ-SPR-050
+- **Acceptance Criteria:** AC-SPR-080
+- **Type:** Unit (structural)
+- **Given:** Any SP resource command is invoked
+- **When:** The command communicates with the API
+- **Then:** The generated SP Resource Manager client is used (verified by mock server receiving correctly structured requests)
+- **Referenced by:** TC-U121 (list), TC-U124 (get)
+
 #### TC-U068: Request timeout applied to HTTP requests
 
 - **Requirement:** REQ-XC-CLI-040
@@ -1165,10 +1276,10 @@ dedicated test class or `Describe` block.
 - **Requirement:** REQ-XC-PAG-010
 - **Acceptance Criteria:** AC-XC-PAG-010
 - **Type:** Unit
-- **Given:** Any list command (`policy list`, `catalog service-type list`, `catalog item list`, `catalog instance list`)
+- **Given:** Any list command (`policy list`, `catalog service-type list`, `catalog item list`, `catalog instance list`, `sp resource list`)
 - **When:** `--help` is displayed
 - **Then:** `--page-size` and `--page-token` flags are listed
-- **Referenced by:** TC-U033 (policy list pagination), TC-U043 (service-type list pagination), TC-U074 (instance list pagination)
+- **Referenced by:** TC-U033 (policy list pagination), TC-U043 (service-type list pagination), TC-U074 (instance list pagination), TC-U122 (SP resource list pagination)
 
 #### TC-U070: Pagination parameters passed as query parameters
 
@@ -1236,7 +1347,7 @@ dedicated test class or `Describe` block.
 | REQ-OUT-020     | TC-U009 (table is default)                           | Covered |
 | REQ-OUT-030     | TC-U017                                             | Covered |
 | REQ-OUT-040     | TC-U009, TC-U010, TC-U018                           | Covered |
-| REQ-OUT-050     | TC-U009, TC-U010, TC-U041, TC-U057, TC-U079         | Covered |
+| REQ-OUT-050     | TC-U009, TC-U010, TC-U041, TC-U057, TC-U079, TC-U128 | Covered |
 | REQ-OUT-060     | TC-U011                                             | Covered |
 | REQ-OUT-070     | TC-U012                                             | Covered |
 | REQ-OUT-080     | TC-U014, TC-U015                                    | Covered |
@@ -1284,6 +1395,11 @@ dedicated test class or `Describe` block.
 | REQ-CIN-090     | TC-U067 (via TC-U058, TC-U073, TC-U075, TC-U077)    | Covered |
 | REQ-CIN-100     | TC-U072                                             | Covered |
 | REQ-CIN-110     | TC-U076, TC-U078                                    | Covered |
+| REQ-SPR-010     | TC-U121, TC-U122, TC-U123                            | Covered |
+| REQ-SPR-020     | TC-U121                                             | Covered |
+| REQ-SPR-030     | TC-U124                                             | Covered |
+| REQ-SPR-040     | TC-U125                                             | Covered |
+| REQ-SPR-050     | TC-U131 (via TC-U121, TC-U124)                       | Covered |
 | REQ-VER-010     | TC-U024                                             | Covered |
 | REQ-VER-020     | TC-U024                                             | Covered |
 | REQ-VER-030     | TC-U025                                             | Covered |
@@ -1299,10 +1415,11 @@ dedicated test class or `Describe` block.
 | REQ-XC-INP-030  | TC-U062 (via TC-U026), TC-U063 (via TC-U026)         | Covered |
 | REQ-XC-CLI-010  | TC-U064 (via TC-U026), TC-U066 (via TC-U026/U030/U034/U036/U039) | Covered |
 | REQ-XC-CLI-020  | TC-U065 (via TC-U042), TC-U067 (via TC-U042/U044/U046/U058) | Covered |
-| REQ-XC-CLI-030  | TC-U064 (via TC-U026), TC-U065 (via TC-U042)         | Covered |
+| REQ-XC-CLI-025  | TC-U130 (via TC-U121), TC-U131 (via TC-U121/U124)    | Covered |
+| REQ-XC-CLI-030  | TC-U064 (via TC-U026), TC-U065 (via TC-U042), TC-U130 (via TC-U121) | Covered |
 | REQ-XC-CLI-040  | TC-U068 (via TC-U084)                               | Covered |
 | REQ-XC-CLI-050  | TC-U088, TC-U090, TC-U091                            | Covered |
-| REQ-XC-PAG-010  | TC-U069 (via TC-U033, TC-U043, TC-U074)              | Covered |
+| REQ-XC-PAG-010  | TC-U069 (via TC-U033, TC-U043, TC-U074, TC-U122)     | Covered |
 | REQ-XC-PAG-020  | TC-U070 (via TC-U033)                               | Covered |
 | REQ-XC-PAG-030  | TC-U071 (via TC-U013, TC-U014, TC-U015)              | Covered |
 | REQ-XC-TLS-010  | TC-U088                                             | Covered |
@@ -1314,7 +1431,7 @@ dedicated test class or `Describe` block.
 | REQ-XC-TLS-070  | TC-U095, TC-U096                                    | Covered |
 | REQ-XC-TLS-080  | TC-U090, TC-U097                                    | Covered |
 
-**Total:** 85 test case IDs — 63 in behavioural test classes, 22 in the utility
+**Total:** 95 test case IDs — 71 in behavioural test classes, 24 in the utility
 index (tested transitively through higher-level behavioural tests).
 
 ---

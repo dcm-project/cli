@@ -14,7 +14,7 @@ import (
 var _ = Describe("Root Command", func() {
 	// TC-U019: Root command registers all subcommands
 	Describe("TC-U019: Subcommand registration", func() {
-		It("should list policy, catalog, and version subcommands in help output", func() {
+		It("should list policy, catalog, sp, and version subcommands in help output", func() {
 			cmd := commands.NewRootCommand()
 			out := new(bytes.Buffer)
 			cmd.SetOut(out)
@@ -27,6 +27,7 @@ var _ = Describe("Root Command", func() {
 			helpOutput := out.String()
 			Expect(helpOutput).To(ContainSubstring("policy"))
 			Expect(helpOutput).To(ContainSubstring("catalog"))
+			Expect(helpOutput).To(ContainSubstring("sp"))
 			Expect(helpOutput).To(ContainSubstring("version"))
 		})
 	})
@@ -47,6 +48,23 @@ var _ = Describe("Root Command", func() {
 			Expect(helpOutput).To(ContainSubstring("service-type"))
 			Expect(helpOutput).To(ContainSubstring("item"))
 			Expect(helpOutput).To(ContainSubstring("instance"))
+		})
+	})
+
+	// TC-U129: SP command registers subcommand groups
+	Describe("TC-U129: SP subcommand registration", func() {
+		It("should list resource subcommand in sp help", func() {
+			cmd := commands.NewRootCommand()
+			out := new(bytes.Buffer)
+			cmd.SetOut(out)
+			cmd.SetErr(new(bytes.Buffer))
+			cmd.SetArgs([]string{"sp", "--help"})
+
+			err := cmd.Execute()
+			Expect(err).NotTo(HaveOccurred())
+
+			helpOutput := out.String()
+			Expect(helpOutput).To(ContainSubstring("resource"))
 		})
 	})
 
@@ -148,6 +166,7 @@ var _ = Describe("Root Command", func() {
 			Entry("catalog item delete without ID", []string{"catalog", "item", "delete"}),
 			Entry("catalog instance get without ID", []string{"catalog", "instance", "get"}),
 			Entry("catalog instance delete without ID", []string{"catalog", "instance", "delete"}),
+			Entry("sp resource get without ID", []string{"sp", "resource", "get"}),
 		)
 	})
 })

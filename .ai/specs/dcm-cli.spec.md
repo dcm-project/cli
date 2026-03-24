@@ -4,9 +4,10 @@
 
 The DCM CLI (`dcm`) is a Go-based command-line tool for interacting with the
 DCM (Data Center Management) control plane. It communicates exclusively through
-the API Gateway (KrakenD on port 9080) to reach the Policy Manager and Catalog
-Manager backends. The CLI uses generated clients from `policy-manager/pkg/client`
-and `catalog-manager/pkg/client` (oapi-codegen generated) as Go module
+the API Gateway (KrakenD on port 9080) to reach the Policy Manager, Catalog
+Manager, and Service Provider Resource Manager backends. The CLI uses generated
+clients from `policy-manager/pkg/client`, `catalog-manager/pkg/client`, and
+`service-provider-manager/pkg/client` (oapi-codegen generated) as Go module
 dependencies.
 
 **Version scope (v1alpha1):**
@@ -15,6 +16,7 @@ dependencies.
 - Service type read operations (list, get)
 - Catalog item operations (create, list, get, delete)
 - Catalog item instance operations (create, list, get, delete)
+- SP resource read operations (list, get) via Service Provider Resource Manager
 - Version display
 - Output formatting (table, JSON, YAML)
 - Configuration via file, environment variables, and flags
@@ -54,6 +56,10 @@ dependencies.
 │  CLI    │ HTTP / HTTPS │  (KrakenD 9080)  │       └──────────────────┘
 │         │              │                  │       ┌──────────────────┐
 └─────────┘              │                  │──────▶│ Catalog Manager  │
+                         │                  │       │ (port 8080)      │
+                         │                  │       └──────────────────┘
+                         │                  │       ┌──────────────────┐
+                         │                  │──────▶│ SP Resource Mgr  │
                          └──────────────────┘       │ (port 8080)      │
                                                     └──────────────────┘
 ```
@@ -70,7 +76,8 @@ dcm-cli/
 │   │   ├── policy.go                  ← Policy command group
 │   │   ├── catalog_service_type.go    ← Service-type command group
 │   │   ├── catalog_item.go            ← Catalog item command group
-│   │   └── catalog_instance.go        ← Catalog instance command group
+│   │   ├── catalog_instance.go        ← Catalog instance command group
+│   │   └── sp_resource.go            ← SP resource command group
 │   └── version/                       ← Build-time version info
 ├── test/e2e/                          ← E2E tests (build tag: e2e)
 ├── Makefile
@@ -93,6 +100,7 @@ dcm-cli/
 | 6 | Catalog Item Commands          | CIT    | 1, 2, 3    |
 | 7 | Catalog Instance Commands      | CIN    | 1, 2, 3    |
 | 8 | Version Command                | VER    | 1          |
+| 9 | SP Resource Commands           | SPR    | 1, 2, 3    |
 
 ```
 Topic 1: CLI Framework           (independent)
@@ -103,6 +111,7 @@ Topic 3: Output Formatting       (independent)
   +---------+---------+---> Topic 5: Service-Type Commands   (depends on 1, 2, 3)
   +---------+---------+---> Topic 6: Catalog Item Commands   (depends on 1, 2, 3)
   +---------+---------+---> Topic 7: Catalog Instance Cmds   (depends on 1, 2, 3)
+  +---------+---------+---> Topic 9: SP Resource Commands    (depends on 1, 2, 3)
   |
   +-----------------------> Topic 8: Version Command         (depends on 1)
 ```
@@ -132,7 +141,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
 | REQ-CLI-020 | The CLI MUST define a root command `dcm` with global flags | MUST | |
-| REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `version` | MUST | |
+| REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `sp`, `version` | MUST | |
 | REQ-CLI-040 | The `catalog` command MUST register subcommand groups: `service-type`, `item`, `instance` | MUST | |
 | REQ-CLI-050 | Global flags MUST include `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | MUST | |
 | REQ-CLI-060 | The CLI MUST exit with code 0 on success, 1 on runtime errors, 2 on usage errors | MUST | |
@@ -152,8 +161,9 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 - **Validates:** REQ-CLI-030, REQ-CLI-040
 - **Given** the CLI is invoked
 - **When** `dcm --help` is run
-- **Then** subcommands `policy`, `catalog`, and `version` MUST be listed
+- **Then** subcommands `policy`, `catalog`, `sp`, and `version` MUST be listed
 - **And** `dcm catalog --help` MUST list `service-type`, `item`, and `instance`
+- **And** `dcm sp --help` MUST list `resource`
 
 ##### AC-CLI-040: Exit code on success
 
@@ -958,6 +968,104 @@ Depends on Topic 1 (CLI Framework).
 
 ---
 
+### 4.9 SP Resource Commands
+
+#### Overview
+
+Implement the `dcm sp resource` command group with read-only subcommands: `list`
+and `get`. SP resources are service type instances managed by the Service
+Provider Resource Manager (SPRM). The CLI provides read-only access to these
+resources.
+
+Out of scope: SP resource create/update/delete (managed via other flows),
+SP health check.
+
+#### Requirements
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| REQ-SPR-010 | `dcm sp resource list` MUST list SP resources (service type instances) with optional `--provider`, `--page-size`, `--page-token` flags | MUST | |
+| REQ-SPR-020 | `dcm sp resource list` MUST display SP resources in the configured output format | MUST | |
+| REQ-SPR-030 | `dcm sp resource get` MUST accept an `INSTANCE_ID` positional argument and display the SP resource | MUST | |
+| REQ-SPR-040 | Missing `INSTANCE_ID` argument for `get` MUST result in a usage error (exit code 2) | MUST | |
+| REQ-SPR-050 | All SP resource commands MUST use the generated SP Resource Manager client | MUST | |
+
+#### Table Output Columns
+
+```
+ID            PROVIDER        STATUS  CREATED
+my-instance   kubevirt-123    READY   2026-03-09T10:00:00Z
+```
+
+#### Acceptance Criteria
+
+##### AC-SPR-010: List SP resources
+
+- **Validates:** REQ-SPR-010, REQ-SPR-020
+- **Given** SP resources exist in the system
+- **When** `dcm sp resource list` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/service-type-instances`
+- **And** the SP resources MUST be displayed in the configured output format
+
+##### AC-SPR-020: List SP resources with pagination
+
+- **Validates:** REQ-SPR-010
+- **Given** SP resources exist in the system
+- **When** `dcm sp resource list --page-size 5` is invoked
+- **Then** the GET request MUST include `max_page_size=5` as a query parameter
+
+##### AC-SPR-030: List SP resources with provider filter
+
+- **Validates:** REQ-SPR-010
+- **Given** SP resources exist in the system
+- **When** `dcm sp resource list --provider kubevirt-123` is invoked
+- **Then** the GET request MUST include `provider=kubevirt-123` as a query parameter
+
+##### AC-SPR-040: Get SP resource
+
+- **Validates:** REQ-SPR-030
+- **Given** an SP resource with ID `my-instance` exists
+- **When** `dcm sp resource get my-instance` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/service-type-instances/my-instance`
+- **And** the SP resource MUST be displayed in the configured output format
+
+##### AC-SPR-050: Get without INSTANCE_ID
+
+- **Validates:** REQ-SPR-040
+- **Given** no positional argument is provided
+- **When** `dcm sp resource get` is invoked
+- **Then** the CLI MUST exit with code 2 and display a usage error
+
+##### AC-SPR-060: List SP resources returns empty list
+
+- **Validates:** REQ-SPR-010, REQ-SPR-020
+- **Given** no SP resources exist in the system
+- **When** `dcm sp resource list` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/service-type-instances`
+- **And** an empty result MUST be displayed (empty table with headers only, or empty JSON array/YAML list)
+
+##### AC-SPR-070: Get non-existent SP resource
+
+- **Validates:** REQ-SPR-030, REQ-XC-ERR-010
+- **Given** no SP resource with ID `nonexistent` exists
+- **When** `dcm sp resource get nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-SPR-080: Generated client usage
+
+- **Validates:** REQ-SPR-050
+- **Given** any SP resource command is invoked
+- **When** the command communicates with the API
+- **Then** the generated SP Resource Manager client MUST be used
+
+#### Dependencies
+
+Depends on Topic 1 (CLI Framework), Topic 2 (Configuration), Topic 3 (Output
+Formatting).
+
+---
+
 ## 5. Cross-Cutting Concerns
 
 ### 5.1 Error Handling
@@ -1061,9 +1169,10 @@ Depends on Topic 1 (CLI Framework).
 |----|-------------|----------|-------|
 | REQ-XC-CLI-010 | The CLI MUST use the generated Policy Manager client (`github.com/dcm-project/policy-manager/pkg/client`) for all policy operations | MUST | |
 | REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client (`github.com/dcm-project/catalog-manager/pkg/client`) for all catalog operations | MUST | |
-| REQ-XC-CLI-030 | Both clients MUST be instantiated with the API Gateway URL appended with `/api/v1alpha1` | MUST | |
-| REQ-XC-CLI-040 | Both clients MUST respect the configured request timeout. The timeout applies to the HTTP request deadline (context timeout) only; file I/O and output formatting are not subject to the timeout. | MUST | |
-| REQ-XC-CLI-050 | Both clients MUST use a custom HTTP client with TLS transport when the API Gateway URL uses `https://` | MUST | |
+| REQ-XC-CLI-025 | The CLI MUST use the generated SP Resource Manager client (`github.com/dcm-project/service-provider-manager/pkg/client`) for all SP resource operations | MUST | |
+| REQ-XC-CLI-030 | All clients MUST be instantiated with the API Gateway URL appended with `/api/v1alpha1` | MUST | |
+| REQ-XC-CLI-040 | All clients MUST respect the configured request timeout. The timeout applies to the HTTP request deadline (context timeout) only; file I/O and output formatting are not subject to the timeout. | MUST | |
+| REQ-XC-CLI-050 | All clients MUST use a custom HTTP client with TLS transport when the API Gateway URL uses `https://` | MUST | |
 
 #### Acceptance Criteria
 
@@ -1074,6 +1183,7 @@ Depends on Topic 1 (CLI Framework).
 - **When** the generated clients are created
 - **Then** the Policy Manager client MUST be created with `http://localhost:9080/api/v1alpha1`
 - **And** the Catalog Manager client MUST be created with `http://localhost:9080/api/v1alpha1`
+- **And** the SP Resource Manager client MUST be created with `http://localhost:9080/api/v1alpha1`
 
 ##### AC-XC-CLI-020: Request timeout
 
@@ -1214,7 +1324,7 @@ and `catalog-manager/pkg/client` instead of hand-writing HTTP client code.
 boilerplate, and evolve with the OpenAPI specs. The CLI is a thin wrapper around
 these clients.
 
-**Related requirements:** REQ-XC-CLI-010, REQ-XC-CLI-020
+**Related requirements:** REQ-XC-CLI-010, REQ-XC-CLI-020, REQ-XC-CLI-025
 
 ### DD-020: Cobra + Viper for CLI framework
 
@@ -1329,8 +1439,9 @@ REQ-OUT-090, REQ-OUT-110, REQ-OUT-120
 | REQ-CIT-NNN | 4.6: Catalog Item Commands | 11 |
 | REQ-CIN-NNN | 4.7: Catalog Instance Commands | 11 |
 | REQ-VER-NNN | 4.8: Version Command | 3 |
+| REQ-SPR-NNN | 4.9: SP Resource Commands | 5 |
 | REQ-XC-ERR-NNN | 5.1: Error Handling | 7 |
 | REQ-XC-INP-NNN | 5.2: Input File Parsing | 3 |
-| REQ-XC-CLI-NNN | 5.3: Generated Client Usage | 4 |
+| REQ-XC-CLI-NNN | 5.3: Generated Client Usage | 5 |
 | REQ-XC-PAG-NNN | 5.4: Pagination | 3 |
-| **Total** | | **88** |
+| **Total** | | **94** |

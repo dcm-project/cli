@@ -4,7 +4,7 @@
 
 ### 1.1 Purpose
 
-The DCM CLI (`dcm`) is the primary user-facing command-line interface for interacting with the DCM (Data Center Management) control plane. It provides commands for managing policies, service types, catalog items, and catalog item instances through the API Gateway.
+The DCM CLI (`dcm`) is the primary user-facing command-line interface for interacting with the DCM (Data Center Management) control plane. It provides commands for managing policies, service types, catalog items, catalog item instances, and service provider resources through the API Gateway.
 
 ### 1.2 Version Scope
 
@@ -28,11 +28,16 @@ This specification covers the `v1alpha1` API surface, matching the API Gateway r
 
 ```
 ┌─────────┐              ┌──────────────────┐       ┌──────────────────┐
-│         │              │                  │       │ Policy Manager   │
-│  dcm    │─────────────▶│  API Gateway     │──────▶│ (port 8080)      │
-│  CLI    │ HTTP / HTTPS │  (KrakenD 9080)  │       └──────────────────┘
 │         │              │                  │       ┌──────────────────┐
-└─────────┘              │                  │──────▶│ Catalog Manager  │
+│  dcm    │─────────────▶│                  │──────▶│ Policy Manager   │
+│  CLI    │ HTTP / HTTPS │  API Gateway     │       │ (port 8080)      │
+│         │              │  (KrakenD 9080)  │       └──────────────────┘
+└─────────┘              │                  │       ┌──────────────────┐
+                         │                  │──────▶│ Catalog Manager  │
+                         │                  │       │ (port 8080)      │
+                         │                  │       └──────────────────┘
+                         │                  │       ┌──────────────────┐
+                         │                  │──────▶│ SP Resource Mgr  │
                          └──────────────────┘       │ (port 8080)      │
                                                     └──────────────────┘
 ```
@@ -43,6 +48,7 @@ The CLI communicates exclusively through the API Gateway (KrakenD on port 9080).
 - `/api/v1alpha1/service-types/*` → Catalog Manager
 - `/api/v1alpha1/catalog-items/*` → Catalog Manager
 - `/api/v1alpha1/catalog-item-instances/*` → Catalog Manager
+- `/api/v1alpha1/service-type-instances/*` → SP Resource Manager
 
 ### 2.2 Internal Architecture
 
@@ -60,6 +66,8 @@ internal/
     catalog_service_type.go  ← Catalog service-type command group
     catalog_item.go          ← Catalog item command group
     catalog_instance.go      ← Catalog instance command group
+    sp.go                    ← SP parent command group
+    sp_resource.go           ← SP resource command group
 ```
 
 ### 2.3 Component Descriptions
@@ -72,7 +80,7 @@ internal/
 | `internal/commands` | Cobra command definitions, flag binding, client invocation |
 | `internal/version` | Build-time version info injected via ldflags |
 
-The CLI uses **generated clients** from `policy-manager/pkg/client` and `catalog-manager/pkg/client` (oapi-codegen generated) as Go module dependencies. No hand-written HTTP client is needed.
+The CLI uses **generated clients** from `policy-manager/pkg/client`, `catalog-manager/pkg/client`, and `service-provider-manager/pkg/client/resource_manager` (oapi-codegen generated) as Go module dependencies. No hand-written HTTP client is needed.
 
 ---
 
@@ -157,6 +165,10 @@ dcm
 │       ├── list
 │       ├── get
 │       └── delete
+├── sp
+│   └── resource       # SP resource management (read-only)
+│       ├── list
+│       └── get
 └── version         # Print version info
 ```
 
@@ -480,7 +492,46 @@ Delete a catalog item instance by ID.
 dcm catalog instance delete INSTANCE_ID
 ```
 
-### 4.6 Version Command
+### 4.6 SP Resource Commands
+
+#### `dcm sp resource list`
+
+List SP resources (service type instances) with optional filtering and pagination.
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--provider` | No | Filter by provider |
+| `--page-size` | No | Maximum results per page |
+| `--page-token` | No | Token for next page |
+
+```bash
+dcm sp resource list
+dcm sp resource list --provider kubevirt-123
+dcm sp resource list --page-size 5
+```
+
+Example output (table):
+
+```
+ID              PROVIDER        STATUS   CREATED
+my-instance     kubevirt-123    ACTIVE   2026-03-09T10:00:00Z
+other-instance  openstack-456   PENDING  2026-03-08T15:30:00Z
+```
+
+#### `dcm sp resource get`
+
+Get a single SP resource by instance ID.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `INSTANCE_ID` | Yes | Service type instance ID |
+
+```bash
+dcm sp resource get INSTANCE_ID
+dcm sp resource get INSTANCE_ID -o yaml
+```
+
+### 4.7 Version Command
 
 #### `dcm version`
 
@@ -587,6 +638,14 @@ func newCatalogInstanceCreateCommand() *cobra.Command
 func newCatalogInstanceListCommand() *cobra.Command
 func newCatalogInstanceGetCommand() *cobra.Command
 func newCatalogInstanceDeleteCommand() *cobra.Command
+
+// sp.go
+func newSPCommand() *cobra.Command                    // parent: dcm sp
+
+// sp_resource.go
+func newSPResourceCommand() *cobra.Command             // parent: dcm sp resource
+func newSPResourceListCommand() *cobra.Command
+func newSPResourceGetCommand() *cobra.Command
 ```
 
 ### 5.4 `internal/version`
@@ -618,6 +677,7 @@ The CLI imports generated client packages as Go module dependencies:
 
 - `github.com/dcm-project/policy-manager/pkg/client` - Policy Manager client
 - `github.com/dcm-project/catalog-manager/pkg/client` - Catalog Manager client
+- `github.com/dcm-project/service-provider-manager/pkg/client/resource_manager` - SP Resource Manager client
 
 These are oapi-codegen generated clients providing typed API access. Key interfaces:
 
@@ -648,6 +708,8 @@ policyClient, _ := policyclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
     policyclient.WithHTTPClient(httpClient))
 catalogClient, _ := catalogclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
     catalogclient.WithHTTPClient(httpClient))
+sprmClient, _ := sprmclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
+    sprmclient.WithHTTPClient(httpClient))
 ```
 
 ---
@@ -683,7 +745,10 @@ dcm-cli/
 │   │   ├── catalog_item.go
 │   │   ├── catalog_item_test.go
 │   │   ├── catalog_instance.go
-│   │   └── catalog_instance_test.go
+│   │   ├── catalog_instance_test.go
+│   │   ├── sp.go
+│   │   ├── sp_resource.go
+│   │   └── sp_resource_test.go
 │   └── version/
 │       └── version.go
 ├── test/
@@ -976,6 +1041,7 @@ go 1.25.5
 | `gopkg.in/yaml.v3` | YAML parsing/output |
 | `github.com/dcm-project/policy-manager/pkg/client` | Generated Policy Manager client |
 | `github.com/dcm-project/catalog-manager/pkg/client` | Generated Catalog Manager client |
+| `github.com/dcm-project/service-provider-manager/pkg/client/resource_manager` | Generated SP Resource Manager client |
 | `github.com/onsi/ginkgo/v2` | Test framework (test dependency) |
 | `github.com/onsi/gomega` | Test matchers (test dependency) |
 
@@ -1065,6 +1131,7 @@ make test-e2e   # Requires DCM_API_GATEWAY_URL pointing to live stack
 - Service type read operations (list, get)
 - Catalog item operations (create, list, get, delete)
 - Catalog item instance operations (create, list, get, delete)
+- SP resource read operations (list, get)
 - Version display
 - Output formatting (table, JSON, YAML)
 - Configuration via file, environment variables, and flags

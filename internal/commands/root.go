@@ -55,6 +55,7 @@ func NewRootCommand() *cobra.Command {
 	// Register subcommand groups
 	cmd.AddCommand(newPolicyCommand())
 	cmd.AddCommand(newCatalogCommand())
+	cmd.AddCommand(newSPCommand())
 	cmd.AddCommand(newVersionCommand())
 
 	return cmd

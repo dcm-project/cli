@@ -57,6 +57,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newCatalogCommand())
 	cmd.AddCommand(newSPCommand())
 	cmd.AddCommand(newVersionCommand())
+	cmd.AddCommand(newCompletionCommand())
 
 	return cmd
 }
@@ -100,6 +101,17 @@ func (e *UsageError) Unwrap() error {
 func ExactArgs(n int) cobra.PositionalArgs {
 	return func(cmd *cobra.Command, args []string) error {
 		if err := cobra.ExactArgs(n)(cmd, args); err != nil {
+			return &UsageError{Err: err}
+		}
+		return nil
+	}
+}
+
+// ExactValidArgs returns a cobra.PositionalArgs that checks both the argument
+// count and that each argument is in ValidArgs, wrapping errors as UsageError.
+func ExactValidArgs(n int) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if err := cobra.MatchAll(cobra.ExactArgs(n), cobra.OnlyValidArgs)(cmd, args); err != nil {
 			return &UsageError{Err: err}
 		}
 		return nil

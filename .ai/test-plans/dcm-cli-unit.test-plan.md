@@ -4,7 +4,7 @@
 
 - **Related Spec:** .ai/specs/dcm-cli.spec.md
 - **Related Plan:** .ai/plan/dcm-cli.plan.md
-- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–120, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-SPR-010–050, REQ-VER-010–030, REQ-XC-ERR-010–070, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
+- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–120, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-SPR-010–050, REQ-VER-010–030, REQ-CMP-010–060, REQ-XC-ERR-010–070, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
 - **Framework:** Ginkgo v2 + Gomega
 - **Created:** 2026-03-09
 
@@ -262,7 +262,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** The root command is created via `NewRootCommand()`
 - **When:** `dcm --help` is executed
-- **Then:** Subcommands `policy`, `catalog`, `sp`, and `version` are listed in the help output
+- **Then:** Subcommands `policy`, `catalog`, `sp`, `version`, and `completion` are listed in the help output
 
 ### TC-U020: Catalog command registers subcommand groups
 
@@ -954,7 +954,77 @@ test classes. Instead:
 
 ---
 
-## 10 · TLS Configuration
+## 10 · Shell Completion Command
+
+> **Suggested Ginkgo structure:** `Describe("Completion Command")` with nested
+> `Context` per shell type.
+
+### TC-U132: Generate bash completion script
+
+- **Requirement:** REQ-CMP-010, REQ-CMP-030, REQ-CMP-050
+- **Acceptance Criteria:** AC-CMP-010
+- **Type:** Unit
+- **Given:** The root command is created
+- **When:** `dcm completion bash` is executed
+- **Then:** A bash completion script is written to stdout AND the output contains bash-specific syntax (e.g., `_dcm` or `complete`)
+
+### TC-U133: Generate zsh completion script
+
+- **Requirement:** REQ-CMP-010, REQ-CMP-030, REQ-CMP-050
+- **Acceptance Criteria:** AC-CMP-020
+- **Type:** Unit
+- **Given:** The root command is created
+- **When:** `dcm completion zsh` is executed
+- **Then:** A zsh completion script is written to stdout AND the output contains zsh-specific syntax (e.g., `compdef` or `#compdef`)
+
+### TC-U134: Generate fish completion script
+
+- **Requirement:** REQ-CMP-010, REQ-CMP-030, REQ-CMP-050
+- **Acceptance Criteria:** AC-CMP-030
+- **Type:** Unit
+- **Given:** The root command is created
+- **When:** `dcm completion fish` is executed
+- **Then:** A fish completion script is written to stdout AND the output contains fish-specific syntax (e.g., `complete -c dcm`)
+
+### TC-U135: Generate powershell completion script
+
+- **Requirement:** REQ-CMP-010, REQ-CMP-030, REQ-CMP-050
+- **Acceptance Criteria:** AC-CMP-040
+- **Type:** Unit
+- **Given:** The root command is created
+- **When:** `dcm completion powershell` is executed
+- **Then:** A powershell completion script is written to stdout AND the output contains powershell-specific syntax (e.g., `Register-ArgumentCompleter`)
+
+### TC-U136: Completion without shell argument fails
+
+- **Requirement:** REQ-CMP-040
+- **Acceptance Criteria:** AC-CMP-050
+- **Type:** Unit
+- **Given:** No positional argument is provided
+- **When:** `dcm completion` is executed
+- **Then:** The CLI exits with code 2 and displays a usage error
+
+### TC-U137: Completion with invalid shell argument fails
+
+- **Requirement:** REQ-CMP-040
+- **Acceptance Criteria:** AC-CMP-060
+- **Type:** Unit
+- **Given:** An unsupported shell name `invalid-shell` is provided
+- **When:** `dcm completion invalid-shell` is executed
+- **Then:** The CLI exits with code 2 and displays a usage error
+
+### TC-U138: Completion help includes usage examples
+
+- **Requirement:** REQ-CMP-060
+- **Acceptance Criteria:** AC-CMP-070
+- **Type:** Unit
+- **Given:** The root command is created
+- **When:** `dcm completion --help` is executed
+- **Then:** The help output includes usage examples for bash, zsh, fish, and powershell
+
+---
+
+## 11 · TLS Configuration
 
 > **Suggested Ginkgo structure:** `Describe("TLS Configuration")` with `Context`
 > per scenario. Tests use `net/http/httptest` with TLS-enabled servers where
@@ -1070,7 +1140,7 @@ test classes. Instead:
 
 ---
 
-## 11 · Error Handling
+## 12 · Error Handling
 
 > **Suggested Ginkgo structure:** `Describe("Error Handling")` with `Context`
 > per error type. Tests exercise error paths through command execution with
@@ -1403,6 +1473,12 @@ dedicated test class or `Describe` block.
 | REQ-VER-010     | TC-U024                                             | Covered |
 | REQ-VER-020     | TC-U024                                             | Covered |
 | REQ-VER-030     | TC-U025                                             | Covered |
+| REQ-CMP-010     | TC-U132, TC-U133, TC-U134, TC-U135                  | Covered |
+| REQ-CMP-020     | TC-U132, TC-U133, TC-U134, TC-U135, TC-U136         | Covered |
+| REQ-CMP-030     | TC-U132, TC-U133, TC-U134, TC-U135                  | Covered |
+| REQ-CMP-040     | TC-U136, TC-U137                                    | Covered |
+| REQ-CMP-050     | TC-U132, TC-U133, TC-U134, TC-U135                  | Covered |
+| REQ-CMP-060     | TC-U138                                             | Covered |
 | REQ-XC-ERR-010  | TC-U080                                             | Covered |
 | REQ-XC-ERR-020  | TC-U080                                             | Covered |
 | REQ-XC-ERR-030  | TC-U081, TC-U082                                    | Covered |
@@ -1431,7 +1507,7 @@ dedicated test class or `Describe` block.
 | REQ-XC-TLS-070  | TC-U095, TC-U096                                    | Covered |
 | REQ-XC-TLS-080  | TC-U090, TC-U097                                    | Covered |
 
-**Total:** 95 test case IDs — 71 in behavioural test classes, 24 in the utility
+**Total:** 102 test case IDs — 78 in behavioural test classes, 24 in the utility
 index (tested transitively through higher-level behavioural tests).
 
 ---

@@ -29,6 +29,7 @@ var _ = Describe("Root Command", func() {
 			Expect(helpOutput).To(ContainSubstring("catalog"))
 			Expect(helpOutput).To(ContainSubstring("sp"))
 			Expect(helpOutput).To(ContainSubstring("version"))
+			Expect(helpOutput).To(ContainSubstring("completion"))
 		})
 	})
 

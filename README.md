@@ -68,6 +68,7 @@ internal/
     catalog_instance.go      ← Catalog instance command group
     sp.go                    ← SP parent command group
     sp_resource.go           ← SP resource command group
+    completion.go            ← Shell completion command
 ```
 
 ### 2.3 Component Descriptions
@@ -169,6 +170,7 @@ dcm
 │   └── resource       # SP resource management (read-only)
 │       ├── list
 │       └── get
+├── completion      # Shell autocompletion
 └── version         # Print version info
 ```
 
@@ -531,7 +533,31 @@ dcm sp resource get INSTANCE_ID
 dcm sp resource get INSTANCE_ID -o yaml
 ```
 
-### 4.7 Version Command
+### 4.7 Completion Command
+
+#### `dcm completion`
+
+Generate shell autocompletion scripts.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `SHELL` | Yes | Shell type: `bash`, `zsh`, `fish`, or `powershell` |
+
+```bash
+# Bash
+source <(dcm completion bash)
+
+# Zsh
+dcm completion zsh > "${fpath[1]}/_dcm"
+
+# Fish
+dcm completion fish | source
+
+# PowerShell
+dcm completion powershell | Out-String | Invoke-Expression
+```
+
+### 4.8 Version Command
 
 #### `dcm version`
 
@@ -646,6 +672,9 @@ func newSPCommand() *cobra.Command                    // parent: dcm sp
 func newSPResourceCommand() *cobra.Command             // parent: dcm sp resource
 func newSPResourceListCommand() *cobra.Command
 func newSPResourceGetCommand() *cobra.Command
+
+// completion.go
+func newCompletionCommand() *cobra.Command              // dcm completion [bash|zsh|fish|powershell]
 ```
 
 ### 5.4 `internal/version`
@@ -748,7 +777,9 @@ dcm-cli/
 │   │   ├── catalog_instance_test.go
 │   │   ├── sp.go
 │   │   ├── sp_resource.go
-│   │   └── sp_resource_test.go
+│   │   ├── sp_resource_test.go
+│   │   ├── completion.go
+│   │   └── completion_test.go
 │   └── version/
 │       └── version.go
 ├── test/
@@ -1137,6 +1168,7 @@ make test-e2e   # Requires DCM_API_GATEWAY_URL pointing to live stack
 - Configuration via file, environment variables, and flags
 - Pagination support for list operations
 - TLS support with custom CA certificates, client certificates (mTLS), and skip-verify
+- Shell autocompletion generation (bash, zsh, fish, powershell)
 - Container image for distribution
 
 ### 12.2 Out of Scope (v1alpha1)
@@ -1144,7 +1176,6 @@ make test-e2e   # Requires DCM_API_GATEWAY_URL pointing to live stack
 - Authentication and authorization (no auth in v1alpha1 API Gateway)
 - Interactive/wizard-style resource creation
 - Watch/streaming operations
-- Shell autocompletion generation
 - Plugin/extension system
 - Offline mode or local caching
 - Bulk operations

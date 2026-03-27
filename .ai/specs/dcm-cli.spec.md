@@ -22,6 +22,7 @@ dependencies.
 - Configuration via file, environment variables, and flags
 - Pagination support for list operations
 - TLS support with custom CA certificates, client certificates (mTLS), and skip-verify
+- Shell autocompletion generation (bash, zsh, fish, powershell)
 - Container image for distribution
 
 **Out of scope (v1alpha1):**
@@ -29,7 +30,6 @@ dependencies.
 - Authentication and authorization (no auth in v1alpha1 API Gateway)
 - Interactive/wizard-style resource creation
 - Watch/streaming operations
-- Shell autocompletion generation
 - Plugin/extension system
 - Offline mode or local caching
 - Bulk operations
@@ -77,7 +77,8 @@ dcm-cli/
 │   │   ├── catalog_service_type.go    ← Service-type command group
 │   │   ├── catalog_item.go            ← Catalog item command group
 │   │   ├── catalog_instance.go        ← Catalog instance command group
-│   │   └── sp_resource.go            ← SP resource command group
+│   │   ├── sp_resource.go            ← SP resource command group
+│   │   └── completion.go             ← Shell completion command
 │   └── version/                       ← Build-time version info
 ├── test/e2e/                          ← E2E tests (build tag: e2e)
 ├── Makefile
@@ -101,6 +102,7 @@ dcm-cli/
 | 7 | Catalog Instance Commands      | CIN    | 1, 2, 3    |
 | 8 | Version Command                | VER    | 1          |
 | 9 | SP Resource Commands           | SPR    | 1, 2, 3    |
+| 10 | Shell Completion Command      | CMP    | 1          |
 
 ```
 Topic 1: CLI Framework           (independent)
@@ -114,6 +116,7 @@ Topic 3: Output Formatting       (independent)
   +---------+---------+---> Topic 9: SP Resource Commands    (depends on 1, 2, 3)
   |
   +-----------------------> Topic 8: Version Command         (depends on 1)
+  +-----------------------> Topic 10: Shell Completion Cmd   (depends on 1)
 ```
 
 Topics 1, 2, and 3 can be delivered in parallel. Topics 4-7 depend on all
@@ -141,7 +144,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
 | REQ-CLI-020 | The CLI MUST define a root command `dcm` with global flags | MUST | |
-| REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `sp`, `version` | MUST | |
+| REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `sp`, `version`, `completion` | MUST | |
 | REQ-CLI-040 | The `catalog` command MUST register subcommand groups: `service-type`, `item`, `instance` | MUST | |
 | REQ-CLI-050 | Global flags MUST include `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | MUST | |
 | REQ-CLI-060 | The CLI MUST exit with code 0 on success, 1 on runtime errors, 2 on usage errors | MUST | |
@@ -161,7 +164,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 - **Validates:** REQ-CLI-030, REQ-CLI-040
 - **Given** the CLI is invoked
 - **When** `dcm --help` is run
-- **Then** subcommands `policy`, `catalog`, `sp`, and `version` MUST be listed
+- **Then** subcommands `policy`, `catalog`, `sp`, `version`, and `completion` MUST be listed
 - **And** `dcm catalog --help` MUST list `service-type`, `item`, and `instance`
 - **And** `dcm sp --help` MUST list `resource`
 
@@ -1066,6 +1069,84 @@ Formatting).
 
 ---
 
+### 4.10 Shell Completion Command
+
+#### Overview
+
+Implement the `dcm completion` command to generate shell autocompletion scripts
+for bash, zsh, fish, and powershell. Uses Cobra's built-in completion generation.
+
+Out of scope: automatic installation of completion scripts, custom completions
+for resource IDs or flag values.
+
+#### Requirements
+
+| ID | Requirement | Priority | Notes |
+|----|-------------|----------|-------|
+| REQ-CMP-010 | `dcm completion` MUST support generating completion scripts for `bash`, `zsh`, `fish`, and `powershell` shells | MUST | |
+| REQ-CMP-020 | The shell name MUST be provided as a positional argument | MUST | |
+| REQ-CMP-030 | The generated script MUST be written to stdout so it can be piped or redirected | MUST | |
+| REQ-CMP-040 | Missing or invalid shell argument MUST result in a usage error (exit code 2) | MUST | |
+| REQ-CMP-050 | `dcm completion` MUST use Cobra's built-in completion generation | MUST | |
+| REQ-CMP-060 | The command help MUST include usage examples showing how to install completions for each supported shell | MUST | |
+
+#### Acceptance Criteria
+
+##### AC-CMP-010: Generate bash completion
+
+- **Validates:** REQ-CMP-010, REQ-CMP-030
+- **Given** the CLI is invoked
+- **When** `dcm completion bash` is run
+- **Then** a valid bash completion script MUST be written to stdout
+
+##### AC-CMP-020: Generate zsh completion
+
+- **Validates:** REQ-CMP-010, REQ-CMP-030
+- **Given** the CLI is invoked
+- **When** `dcm completion zsh` is run
+- **Then** a valid zsh completion script MUST be written to stdout
+
+##### AC-CMP-030: Generate fish completion
+
+- **Validates:** REQ-CMP-010, REQ-CMP-030
+- **Given** the CLI is invoked
+- **When** `dcm completion fish` is run
+- **Then** a valid fish completion script MUST be written to stdout
+
+##### AC-CMP-040: Generate powershell completion
+
+- **Validates:** REQ-CMP-010, REQ-CMP-030
+- **Given** the CLI is invoked
+- **When** `dcm completion powershell` is run
+- **Then** a valid powershell completion script MUST be written to stdout
+
+##### AC-CMP-050: Missing shell argument
+
+- **Validates:** REQ-CMP-040
+- **Given** no positional argument is provided
+- **When** `dcm completion` is invoked
+- **Then** the CLI MUST exit with code 2 and display a usage error
+
+##### AC-CMP-060: Invalid shell argument
+
+- **Validates:** REQ-CMP-040
+- **Given** an unsupported shell name is provided
+- **When** `dcm completion invalid-shell` is invoked
+- **Then** the CLI MUST exit with code 2 and display a usage error
+
+##### AC-CMP-070: Help includes usage examples
+
+- **Validates:** REQ-CMP-060
+- **Given** the CLI is invoked
+- **When** `dcm completion --help` is run
+- **Then** the help output MUST include usage examples for bash, zsh, fish, and powershell
+
+#### Dependencies
+
+Depends on Topic 1 (CLI Framework).
+
+---
+
 ## 5. Cross-Cutting Concerns
 
 ### 5.1 Error Handling
@@ -1440,8 +1521,9 @@ REQ-OUT-090, REQ-OUT-110, REQ-OUT-120
 | REQ-CIN-NNN | 4.7: Catalog Instance Commands | 11 |
 | REQ-VER-NNN | 4.8: Version Command | 3 |
 | REQ-SPR-NNN | 4.9: SP Resource Commands | 5 |
+| REQ-CMP-NNN | 4.10: Shell Completion Command | 6 |
 | REQ-XC-ERR-NNN | 5.1: Error Handling | 7 |
 | REQ-XC-INP-NNN | 5.2: Input File Parsing | 3 |
 | REQ-XC-CLI-NNN | 5.3: Generated Client Usage | 5 |
 | REQ-XC-PAG-NNN | 5.4: Pagination | 3 |
-| **Total** | | **94** |
+| **Total** | | **100** |

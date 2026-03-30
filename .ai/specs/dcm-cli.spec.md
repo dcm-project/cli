@@ -816,8 +816,8 @@ instance logs.
 #### Table Output Columns
 
 ```
-ID            UID                                   DISPLAY NAME      CATALOG ITEM      CREATED
-my-instance   c3d4e5f6-a7b8-9012-cdef-123456789012  My App Instance   my-catalog-item   2026-03-09T10:00:00Z
+ID            UID                                   DISPLAY NAME      CATALOG ITEM      RESOURCE ID       CREATED
+my-instance   c3d4e5f6-a7b8-9012-cdef-123456789012  My App Instance   my-catalog-item   res-abc123        2026-03-09T10:00:00Z
 ```
 
 #### Acceptance Criteria

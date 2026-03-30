@@ -868,7 +868,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** A mock server returning an instance with all fields populated
 - **When:** `dcm catalog instance get my-instance` is executed with `--output table`
-- **Then:** The table output includes columns: ID, UID, DISPLAY NAME, CATALOG ITEM, CREATED
+- **Then:** The table output includes columns: ID, UID, DISPLAY NAME, CATALOG ITEM, RESOURCE ID, CREATED
 
 ---
 

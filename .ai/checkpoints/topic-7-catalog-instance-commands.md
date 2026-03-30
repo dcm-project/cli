@@ -41,7 +41,7 @@ Topic 7 implements the `dcm catalog instance` command group with subcommands (`c
 | TC-U076 | Get without INSTANCE_ID → UsageError (exit code 2) | Pass |
 | TC-U077 | Delete instance — DELETE, displays success message | Pass |
 | TC-U078 | Delete without INSTANCE_ID → UsageError (exit code 2) | Pass |
-| TC-U079 | Table output columns: UID, DISPLAY NAME, CATALOG ITEM, CREATED | Pass |
+| TC-U079 | Table output columns: UID, DISPLAY NAME, CATALOG ITEM, RESOURCE ID, CREATED | Pass |
 | TC-U112 | Empty list — table shows headers only; JSON shows empty `results` array | Pass |
 | TC-U113 | Get non-existent instance — 404 RFC 7807 error formatted to stderr | Pass |
 | TC-U114 | Delete non-existent instance — 404 RFC 7807 error formatted to stderr | Pass |
@@ -66,7 +66,7 @@ Topic 7 implements the `dcm catalog instance` command group with subcommands (`c
 
 2. **Reuses `newCatalogClient` from helpers.go** — Per Topic 5's design, the catalog client constructor is shared across all catalog commands (service-type, item, instance).
 
-3. **Table columns** — UID, DISPLAY NAME, CATALOG ITEM, CREATED. The catalog item ID is extracted from `spec.catalog_item_id` via the nested map access pattern.
+3. **Table columns** — UID, DISPLAY NAME, CATALOG ITEM, RESOURCE ID, CREATED. The catalog item ID and resource ID are extracted from `spec.catalog_item_id` and `spec.resource_id` via the nested map access pattern.
 
 4. **List response uses `results` field** — Consistent with the Catalog Manager's response format, same as service-type and catalog item lists.
 

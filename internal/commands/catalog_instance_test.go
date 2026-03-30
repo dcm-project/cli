@@ -22,6 +22,7 @@ func sampleInstanceResponse() map[string]any {
 		"create_time":  "2026-03-09T10:00:00Z",
 		"spec": map[string]any{
 			"catalog_item_id": "my-catalog-item",
+			"resource_id":     "res-abc123",
 		},
 	}
 }
@@ -286,10 +287,12 @@ var _ = Describe("Catalog Instance Commands", func() {
 			Expect(out).To(ContainSubstring("UID"))
 			Expect(out).To(ContainSubstring("DISPLAY NAME"))
 			Expect(out).To(ContainSubstring("CATALOG ITEM"))
+			Expect(out).To(ContainSubstring("RESOURCE ID"))
 			Expect(out).To(ContainSubstring("CREATED"))
 			Expect(out).To(ContainSubstring("c3d4e5f6-a7b8-9012-cdef-123456789012"))
 			Expect(out).To(ContainSubstring("My App Instance"))
 			Expect(out).To(ContainSubstring("my-catalog-item"))
+			Expect(out).To(ContainSubstring("res-abc123"))
 			Expect(out).To(ContainSubstring("2026-03-09T10:00:00Z"))
 		})
 	})

@@ -13,20 +13,23 @@ import (
 )
 
 var catalogInstanceTableDef = &output.TableDef{
-	Headers: []string{"UID", "DISPLAY NAME", "CATALOG ITEM", "CREATED"},
+	Headers: []string{"UID", "DISPLAY NAME", "CATALOG ITEM", "RESOURCE ID", "CREATED"},
 	RowFunc: func(resource any) []string {
 		m, ok := resource.(map[string]any)
 		if !ok {
-			return []string{"", "", "", ""}
+			return []string{"", "", "", "", ""}
 		}
 		var catalogItemID string
+		var resourceID string
 		if spec, ok := m["spec"].(map[string]any); ok {
 			catalogItemID = stringifyValue(spec, "catalog_item_id")
+			resourceID = stringifyValue(spec, "resource_id")
 		}
 		return []string{
 			stringifyValue(m, "uid"),
 			stringifyValue(m, "display_name"),
 			catalogItemID,
+			resourceID,
 			stringifyValue(m, "create_time"),
 		}
 	},

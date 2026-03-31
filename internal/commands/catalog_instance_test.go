@@ -20,9 +20,9 @@ func sampleInstanceResponse() map[string]any {
 		"uid":          "c3d4e5f6-a7b8-9012-cdef-123456789012",
 		"display_name": "My App Instance",
 		"create_time":  "2026-03-09T10:00:00Z",
+		"resource_id":  "res-abc123",
 		"spec": map[string]any{
 			"catalog_item_id": "my-catalog-item",
-			"resource_id":     "res-abc123",
 		},
 	}
 }

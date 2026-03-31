@@ -20,16 +20,14 @@ var catalogInstanceTableDef = &output.TableDef{
 			return []string{"", "", "", "", ""}
 		}
 		var catalogItemID string
-		var resourceID string
 		if spec, ok := m["spec"].(map[string]any); ok {
 			catalogItemID = stringifyValue(spec, "catalog_item_id")
-			resourceID = stringifyValue(spec, "resource_id")
 		}
 		return []string{
 			stringifyValue(m, "uid"),
 			stringifyValue(m, "display_name"),
 			catalogItemID,
-			resourceID,
+			stringifyValue(m, "resource_id"),
 			stringifyValue(m, "create_time"),
 		}
 	},

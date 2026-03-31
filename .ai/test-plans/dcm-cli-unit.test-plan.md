@@ -870,6 +870,42 @@ test classes. Instead:
 - **When:** `dcm catalog instance get my-instance` is executed with `--output table`
 - **Then:** The table output includes columns: ID, UID, DISPLAY NAME, CATALOG ITEM, RESOURCE ID, CREATED
 
+### TC-U150: Rehydrate instance
+
+- **Requirement:** REQ-CIN-120, REQ-CIN-130
+- **Acceptance Criteria:** AC-CIN-130
+- **Type:** Unit
+- **Given:** A mock server returning 200 with a rehydrated instance
+- **When:** `dcm catalog instance rehydrate my-instance` is executed
+- **Then:** A POST request is sent to `/api/v1alpha1/catalog-item-instances/my-instance:rehydrate` AND the rehydrated instance is displayed in the configured output format
+
+### TC-U151: Rehydrate instance without INSTANCE_ID fails
+
+- **Requirement:** REQ-CIN-110
+- **Acceptance Criteria:** AC-CIN-140
+- **Type:** Unit
+- **Given:** No positional argument is provided
+- **When:** `dcm catalog instance rehydrate` is executed
+- **Then:** The CLI exits with code 2 and displays a usage error
+
+### TC-U152: Rehydrate non-existent instance
+
+- **Requirement:** REQ-CIN-120, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-CIN-150, AC-XC-ERR-010
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for instance ID `nonexistent`
+- **When:** `dcm catalog instance rehydrate nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U153: Rehydrate instance server error
+
+- **Requirement:** REQ-CIN-120, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-XC-ERR-010
+- **Type:** Unit
+- **Given:** A mock server returning 500 with RFC 7807 body
+- **When:** `dcm catalog instance rehydrate my-instance` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
 ---
 
 ## 9 · SP Resource Commands
@@ -1575,7 +1611,9 @@ dedicated test class or `Describe` block.
 | REQ-CIN-080     | TC-U077                                             | Covered |
 | REQ-CIN-090     | TC-U067 (via TC-U058, TC-U073, TC-U075, TC-U077)    | Covered |
 | REQ-CIN-100     | TC-U072                                             | Covered |
-| REQ-CIN-110     | TC-U076, TC-U078                                    | Covered |
+| REQ-CIN-110     | TC-U076, TC-U078, TC-U151                            | Covered |
+| REQ-CIN-120     | TC-U150, TC-U152, TC-U153                            | Covered |
+| REQ-CIN-130     | TC-U150                                             | Covered |
 | REQ-SPR-010     | TC-U121, TC-U122, TC-U123                            | Covered |
 | REQ-SPR-020     | TC-U121                                             | Covered |
 | REQ-SPR-030     | TC-U124                                             | Covered |
@@ -1624,7 +1662,7 @@ dedicated test class or `Describe` block.
 | REQ-XC-TLS-070  | TC-U095, TC-U096                                    | Covered |
 | REQ-XC-TLS-080  | TC-U090, TC-U097                                    | Covered |
 
-**Total:** 113 test case IDs — 87 in behavioural test classes, 26 in the utility
+**Total:** 117 test case IDs — 91 in behavioural test classes, 26 in the utility
 index (tested transitively through higher-level behavioural tests).
 
 ---

@@ -297,6 +297,68 @@ var _ = Describe("Catalog Instance Commands", func() {
 		})
 	})
 
+	Describe("rehydrate", func() {
+		// TC-U150: Rehydrate instance
+		It("TC-U150: should rehydrate an instance and display the result", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.Method).To(Equal(http.MethodPost))
+				Expect(r.URL.Path).To(Equal("/api/v1alpha1/catalog-item-instances/my-instance:rehydrate"))
+
+				writeJSONResponse(w, http.StatusOK, sampleInstanceResponse())
+			}))
+
+			err := executeCommand("catalog", "instance", "rehydrate", "my-instance")
+			Expect(err).NotTo(HaveOccurred())
+
+			out := outBuf.String()
+			Expect(out).To(ContainSubstring("c3d4e5f6-a7b8-9012-cdef-123456789012"))
+			Expect(out).To(ContainSubstring("My App Instance"))
+		})
+
+		// TC-U151: Rehydrate instance without INSTANCE_ID fails
+		It("TC-U151: should return a UsageError when INSTANCE_ID is missing", func() {
+			err := executeCommand("catalog", "instance", "rehydrate")
+			Expect(err).To(HaveOccurred())
+
+			var usageErr *commands.UsageError
+			Expect(errors.As(err, &usageErr)).To(BeTrue())
+		})
+
+		// TC-U152: Rehydrate non-existent instance
+		It("TC-U152: should display error for non-existent instance", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				writeRFC7807(w, http.StatusNotFound, "NOT_FOUND",
+					`Catalog item instance "nonexistent" not found.`,
+					"The requested catalog item instance resource does not exist.")
+			}))
+
+			err := executeCommand("catalog", "instance", "rehydrate", "nonexistent")
+			Expect(err).To(HaveOccurred())
+
+			var fmtErr *commands.FormattedError
+			Expect(errors.As(err, &fmtErr)).To(BeTrue())
+
+			errOut := errBuf.String()
+			Expect(errOut).To(ContainSubstring("NOT_FOUND"))
+			Expect(errOut).To(ContainSubstring("not found"))
+			Expect(outBuf.String()).To(BeEmpty())
+		})
+
+		// TC-U153: Rehydrate instance server error
+		It("TC-U153: should display error and exit code 1 on server error", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				writeRFC7807(w, http.StatusInternalServerError, "INTERNAL", "Internal server error", "Something went wrong")
+			}))
+
+			err := executeCommand("catalog", "instance", "rehydrate", "my-instance")
+			Expect(err).To(HaveOccurred())
+
+			var fmtErr *commands.FormattedError
+			Expect(errors.As(err, &fmtErr)).To(BeTrue())
+			Expect(errBuf.String()).To(ContainSubstring("INTERNAL"))
+		})
+	})
+
 	Describe("delete", func() {
 		// TC-U077: Delete instance
 		It("TC-U077: should delete an instance and display success message", func() {

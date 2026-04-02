@@ -2,6 +2,8 @@ module github.com/dcm-project/cli
 
 go 1.25.5
 
+replace github.com/dcm-project/catalog-manager => github.com/ygalblum/dcm-catalog-manager v0.0.0-20260331125406-f6f28002539e
+
 require (
 	github.com/dcm-project/catalog-manager v0.0.0-20260313160905-1ff110850088
 	github.com/dcm-project/policy-manager v0.0.0-20260310132113-15bd45617e87
@@ -30,7 +32,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
-	github.com/oapi-codegen/runtime v1.3.0 // indirect
+	github.com/oapi-codegen/runtime v1.3.1 // indirect
 	github.com/oasdiff/yaml v0.0.0-20260313112342-a3ea61cb4d4c // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20260224194419-61cd415a242b // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -42,11 +44,11 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
-	golang.org/x/mod v0.32.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	golang.org/x/tools v0.41.0 // indirect
+	golang.org/x/tools v0.42.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

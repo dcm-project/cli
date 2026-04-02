@@ -43,6 +43,7 @@ func newCatalogInstanceCommand() *cobra.Command {
 	cmd.AddCommand(newCatalogInstanceListCommand())
 	cmd.AddCommand(newCatalogInstanceGetCommand())
 	cmd.AddCommand(newCatalogInstanceDeleteCommand())
+	cmd.AddCommand(newCatalogInstanceRehydrateCommand())
 
 	return cmd
 }
@@ -196,6 +197,46 @@ func newCatalogInstanceGetCommand() *cobra.Command {
 			defer cancel()
 
 			resp, err := client.GetCatalogItemInstance(ctx, args[0])
+			if err != nil {
+				return connectionError(err, cfg)
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if resp.StatusCode != http.StatusOK {
+				return handleErrorResponse(resp, formatter)
+			}
+
+			var result map[string]any
+			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+				return fmt.Errorf("parsing response: %w", err)
+			}
+
+			return formatter.FormatOne(result)
+		},
+	}
+}
+
+func newCatalogInstanceRehydrateCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "rehydrate INSTANCE_ID",
+		Short: "Rehydrate a catalog item instance",
+		Args:  ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromCommand(cmd)
+			formatter, err := newFormatter(cmd, catalogInstanceTableDef, "catalog instance rehydrate")
+			if err != nil {
+				return err
+			}
+
+			client, err := newCatalogClient(cfg)
+			if err != nil {
+				return fmt.Errorf("creating catalog client: %w", err)
+			}
+
+			ctx, cancel := requestContext(cmd)
+			defer cancel()
+
+			resp, err := client.RehydrateCatalogItemInstance(ctx, args[0])
 			if err != nil {
 				return connectionError(err, cfg)
 			}

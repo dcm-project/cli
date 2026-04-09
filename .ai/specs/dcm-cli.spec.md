@@ -15,7 +15,7 @@ dependencies.
 - Policy CRUD operations (create, list, get, update, delete)
 - Service type read operations (list, get)
 - Catalog item operations (create, list, get, delete)
-- Catalog item instance operations (create, list, get, delete)
+- Catalog item instance operations (create, list, get, delete, rehydrate)
 - SP resource read operations (list, get) via Service Provider Resource Manager
 - SP provider read operations (list, get) via Service Provider Manager
 - Version display
@@ -795,8 +795,10 @@ Formatting).
 #### Overview
 
 Implement the `dcm catalog instance` command group with subcommands: `create`,
-`list`, `get`, `delete`. Instances represent deployed catalog items. No update
-operation is supported for instances in v1alpha1.
+`list`, `get`, `delete`, `rehydrate`. Instances represent deployed catalog items.
+No update operation is supported for instances in v1alpha1. The `rehydrate`
+command triggers rehydration of an existing instance, generating a new resource
+ID and delegating to the Placement Manager.
 
 Out of scope: instance update/day-2 operations, instance status watching,
 instance logs.
@@ -815,7 +817,9 @@ instance logs.
 | REQ-CIN-080 | `dcm catalog instance delete` MUST display a success message in the format `Catalog item instance "<instanceId>" deleted successfully.` | MUST | |
 | REQ-CIN-090 | All catalog instance commands MUST use the generated Catalog Manager client | MUST | |
 | REQ-CIN-100 | `--from-file` MUST be required for `create` | MUST | |
-| REQ-CIN-110 | Missing positional arguments for `get`, `delete` MUST result in a usage error (exit code 2) | MUST | |
+| REQ-CIN-110 | Missing positional arguments for `get`, `delete`, `rehydrate` MUST result in a usage error (exit code 2) | MUST | |
+| REQ-CIN-120 | `dcm catalog instance rehydrate` MUST accept an `INSTANCE_ID` positional argument and trigger rehydration of the instance | MUST | |
+| REQ-CIN-130 | `dcm catalog instance rehydrate` MUST display the rehydrated instance in the configured output format | MUST | |
 
 #### Table Output Columns
 
@@ -917,6 +921,29 @@ my-instance   c3d4e5f6-a7b8-9012-cdef-123456789012  My App Instance   my-catalog
 - **When** `dcm catalog instance create --from-file instance.yaml` is invoked
 - **And** the API returns a server-side error (e.g., 500 Internal Server Error or 409 Conflict) with RFC 7807 body
 - **Then** the CLI MUST display the error in the configured output format and exit with code 1
+
+##### AC-CIN-130: Rehydrate instance
+
+- **Validates:** REQ-CIN-120, REQ-CIN-130
+- **Given** an instance with ID `my-instance` exists
+- **When** `dcm catalog instance rehydrate my-instance` is invoked
+- **Then** a POST request MUST be sent to `/api/v1alpha1/catalog-item-instances/my-instance:rehydrate`
+- **And** the rehydrated instance MUST be displayed in the configured output format
+
+##### AC-CIN-140: Rehydrate without INSTANCE_ID
+
+- **Validates:** REQ-CIN-110
+- **Given** no positional argument is provided
+- **When** `dcm catalog instance rehydrate` is invoked
+- **Then** the CLI MUST exit with code 2 and display a usage error
+
+##### AC-CIN-150: Rehydrate non-existent instance
+
+- **Validates:** REQ-CIN-120, REQ-XC-ERR-010
+- **Given** no instance with ID `nonexistent` exists
+- **When** `dcm catalog instance rehydrate nonexistent` is invoked
+- **Then** the API returns a 404 with RFC 7807 body
+- **And** the CLI MUST display the error in the configured output format and exit with code 1
 
 #### Dependencies
 

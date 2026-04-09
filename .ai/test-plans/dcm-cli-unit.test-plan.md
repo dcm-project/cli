@@ -952,6 +952,24 @@ test classes. Instead:
 - **When:** `dcm sp resource get my-instance` is executed
 - **Then:** A GET request is sent to `/api/v1alpha1/service-type-instances/my-instance` AND the SP resource is displayed
 
+### TC-U156: Get SP resource with show-deleted
+
+- **Requirement:** REQ-SPR-035, REQ-SPR-060, REQ-SPR-070
+- **Acceptance Criteria:** AC-SPR-045
+- **Type:** Unit
+- **Given:** A mock server returning 200 with a soft-deleted SP resource (with `deletion_status: "PENDING"`)
+- **When:** `dcm sp resource get deleted-instance --show-deleted` is executed
+- **Then:** The GET request includes `show_deleted=true` as a query parameter AND the table output includes a `DELETION STATUS` column AND the `PENDING` value is displayed
+
+### TC-U157: Get SP resource without show-deleted omits deletion status column
+
+- **Requirement:** REQ-SPR-070
+- **Acceptance Criteria:** AC-SPR-046
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an SP resource
+- **When:** `dcm sp resource get my-instance` is executed without `--show-deleted`
+- **Then:** The `show_deleted` query parameter is NOT sent AND the table output does NOT include a `DELETION STATUS` column
+
 ### TC-U125: Get SP resource without INSTANCE_ID fails
 
 - **Requirement:** REQ-SPR-040
@@ -960,6 +978,24 @@ test classes. Instead:
 - **Given:** No positional argument is provided
 - **When:** `dcm sp resource get` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
+
+### TC-U154: List SP resources with show-deleted
+
+- **Requirement:** REQ-SPR-010, REQ-SPR-060, REQ-SPR-070
+- **Acceptance Criteria:** AC-SPR-035
+- **Type:** Unit
+- **Given:** A mock server returning 200 with a list including a soft-deleted SP resource (with `deletion_status: "PENDING"`)
+- **When:** `dcm sp resource list --show-deleted` is executed
+- **Then:** The GET request includes `show_deleted=true` as a query parameter AND the table output includes a `DELETION STATUS` column AND the `PENDING` value is displayed
+
+### TC-U155: List SP resources without show-deleted omits deletion status column
+
+- **Requirement:** REQ-SPR-070
+- **Acceptance Criteria:** AC-SPR-036
+- **Type:** Unit
+- **Given:** A mock server returning 200 with a list of SP resources
+- **When:** `dcm sp resource list` is executed without `--show-deleted`
+- **Then:** The `show_deleted` query parameter is NOT sent AND the table output does NOT include a `DELETION STATUS` column
 
 ### TC-U126: List SP resources returns empty list
 
@@ -1564,7 +1600,7 @@ dedicated test class or `Describe` block.
 | REQ-OUT-020     | TC-U009 (table is default)                           | Covered |
 | REQ-OUT-030     | TC-U017                                             | Covered |
 | REQ-OUT-040     | TC-U009, TC-U010, TC-U018                           | Covered |
-| REQ-OUT-050     | TC-U009, TC-U010, TC-U041, TC-U057, TC-U079, TC-U128, TC-U146 | Covered |
+| REQ-OUT-050     | TC-U009, TC-U010, TC-U041, TC-U057, TC-U079, TC-U128, TC-U146, TC-U154, TC-U156 | Covered |
 | REQ-OUT-060     | TC-U011                                             | Covered |
 | REQ-OUT-070     | TC-U012                                             | Covered |
 | REQ-OUT-080     | TC-U014, TC-U015                                    | Covered |
@@ -1614,11 +1650,14 @@ dedicated test class or `Describe` block.
 | REQ-CIN-110     | TC-U076, TC-U078, TC-U151                            | Covered |
 | REQ-CIN-120     | TC-U150, TC-U152, TC-U153                            | Covered |
 | REQ-CIN-130     | TC-U150                                             | Covered |
-| REQ-SPR-010     | TC-U121, TC-U122, TC-U123                            | Covered |
+| REQ-SPR-010     | TC-U121, TC-U122, TC-U123, TC-U154                   | Covered |
 | REQ-SPR-020     | TC-U121                                             | Covered |
 | REQ-SPR-030     | TC-U124                                             | Covered |
+| REQ-SPR-035     | TC-U156                                             | Covered |
 | REQ-SPR-040     | TC-U125                                             | Covered |
 | REQ-SPR-050     | TC-U131 (via TC-U121, TC-U124)                       | Covered |
+| REQ-SPR-060     | TC-U154, TC-U156                                    | Covered |
+| REQ-SPR-070     | TC-U154, TC-U155, TC-U156, TC-U157                  | Covered |
 | REQ-SPP-010     | TC-U139, TC-U140, TC-U141                            | Covered |
 | REQ-SPP-020     | TC-U139                                             | Covered |
 | REQ-SPP-030     | TC-U142                                             | Covered |
@@ -1662,7 +1701,7 @@ dedicated test class or `Describe` block.
 | REQ-XC-TLS-070  | TC-U095, TC-U096                                    | Covered |
 | REQ-XC-TLS-080  | TC-U090, TC-U097                                    | Covered |
 
-**Total:** 117 test case IDs — 91 in behavioural test classes, 26 in the utility
+**Total:** 121 test case IDs — 95 in behavioural test classes, 26 in the utility
 index (tested transitively through higher-level behavioural tests).
 
 ---

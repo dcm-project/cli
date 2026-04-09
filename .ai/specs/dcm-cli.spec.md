@@ -1018,17 +1018,28 @@ SP health check.
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-SPR-010 | `dcm sp resource list` MUST list SP resources (service type instances) with optional `--provider`, `--page-size`, `--page-token` flags | MUST | |
+| REQ-SPR-010 | `dcm sp resource list` MUST list SP resources (service type instances) with optional `--provider`, `--show-deleted`, `--page-size`, `--page-token` flags | MUST | |
 | REQ-SPR-020 | `dcm sp resource list` MUST display SP resources in the configured output format | MUST | |
 | REQ-SPR-030 | `dcm sp resource get` MUST accept an `INSTANCE_ID` positional argument and display the SP resource | MUST | |
+| REQ-SPR-035 | `dcm sp resource get` MUST support an optional `--show-deleted` flag | MUST | |
 | REQ-SPR-040 | Missing `INSTANCE_ID` argument for `get` MUST result in a usage error (exit code 2) | MUST | |
 | REQ-SPR-050 | All SP resource commands MUST use the generated SP Resource Manager client | MUST | |
+| REQ-SPR-060 | When `--show-deleted` is set, `list` and `get` MUST pass `show_deleted=true` as a query parameter to the API | MUST | |
+| REQ-SPR-070 | When `--show-deleted` is set, table output MUST include an additional `DELETION STATUS` column displaying the `deletion_status` field | MUST | |
 
 #### Table Output Columns
 
+Default:
 ```
 ID            PROVIDER        STATUS  CREATED
 my-instance   kubevirt-123    READY   2026-03-09T10:00:00Z
+```
+
+With `--show-deleted`:
+```
+ID                PROVIDER        STATUS   DELETION STATUS  CREATED
+my-instance       kubevirt-123    READY                     2026-03-09T10:00:00Z
+deleted-instance  kubevirt-123    DELETED  PENDING          2026-03-09T10:00:00Z
 ```
 
 #### Acceptance Criteria
@@ -1055,6 +1066,22 @@ my-instance   kubevirt-123    READY   2026-03-09T10:00:00Z
 - **When** `dcm sp resource list --provider kubevirt-123` is invoked
 - **Then** the GET request MUST include `provider=kubevirt-123` as a query parameter
 
+##### AC-SPR-035: List SP resources with show-deleted
+
+- **Validates:** REQ-SPR-010, REQ-SPR-060, REQ-SPR-070
+- **Given** SP resources exist in the system, including soft-deleted ones
+- **When** `dcm sp resource list --show-deleted` is invoked
+- **Then** the GET request MUST include `show_deleted=true` as a query parameter
+- **And** the table output MUST include a `DELETION STATUS` column
+
+##### AC-SPR-036: List SP resources without show-deleted omits deletion status column
+
+- **Validates:** REQ-SPR-070
+- **Given** SP resources exist in the system
+- **When** `dcm sp resource list` is invoked without `--show-deleted`
+- **Then** the `show_deleted` query parameter MUST NOT be sent
+- **And** the table output MUST NOT include a `DELETION STATUS` column
+
 ##### AC-SPR-040: Get SP resource
 
 - **Validates:** REQ-SPR-030
@@ -1062,6 +1089,22 @@ my-instance   kubevirt-123    READY   2026-03-09T10:00:00Z
 - **When** `dcm sp resource get my-instance` is invoked
 - **Then** a GET request MUST be sent to `/api/v1alpha1/service-type-instances/my-instance`
 - **And** the SP resource MUST be displayed in the configured output format
+
+##### AC-SPR-045: Get SP resource with show-deleted
+
+- **Validates:** REQ-SPR-035, REQ-SPR-060, REQ-SPR-070
+- **Given** a soft-deleted SP resource with ID `deleted-instance` exists
+- **When** `dcm sp resource get deleted-instance --show-deleted` is invoked
+- **Then** the GET request MUST include `show_deleted=true` as a query parameter
+- **And** the table output MUST include a `DELETION STATUS` column
+
+##### AC-SPR-046: Get SP resource without show-deleted omits deletion status column
+
+- **Validates:** REQ-SPR-070
+- **Given** an SP resource with ID `my-instance` exists
+- **When** `dcm sp resource get my-instance` is invoked without `--show-deleted`
+- **Then** the `show_deleted` query parameter MUST NOT be sent
+- **And** the table output MUST NOT include a `DELETION STATUS` column
 
 ##### AC-SPR-050: Get without INSTANCE_ID
 
@@ -1651,11 +1694,11 @@ REQ-OUT-090, REQ-OUT-110, REQ-OUT-120
 | REQ-CIT-NNN | 4.6: Catalog Item Commands | 11 |
 | REQ-CIN-NNN | 4.7: Catalog Instance Commands | 11 |
 | REQ-VER-NNN | 4.8: Version Command | 3 |
-| REQ-SPR-NNN | 4.9: SP Resource Commands | 5 |
+| REQ-SPR-NNN | 4.9: SP Resource Commands | 8 |
 | REQ-CMP-NNN | 4.10: Shell Completion Command | 6 |
 | REQ-SPP-NNN | 4.11: SP Provider Commands | 5 |
 | REQ-XC-ERR-NNN | 5.1: Error Handling | 7 |
 | REQ-XC-INP-NNN | 5.2: Input File Parsing | 3 |
 | REQ-XC-CLI-NNN | 5.3: Generated Client Usage | 6 |
 | REQ-XC-PAG-NNN | 5.4: Pagination | 3 |
-| **Total** | | **106** |
+| **Total** | | **109** |

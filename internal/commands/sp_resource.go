@@ -28,6 +28,23 @@ var spResourceTableDef = &output.TableDef{
 	},
 }
 
+var spResourceWithDeletedTableDef = &output.TableDef{
+	Headers: []string{"ID", "PROVIDER", "STATUS", "DELETION STATUS", "CREATED"},
+	RowFunc: func(resource any) []string {
+		m, ok := resource.(map[string]any)
+		if !ok {
+			return []string{"", "", "", "", ""}
+		}
+		return []string{
+			stringifyValue(m, "id"),
+			stringifyValue(m, "provider_name"),
+			stringifyValue(m, "status"),
+			stringifyValue(m, "deletion_status"),
+			stringifyValue(m, "create_time"),
+		}
+	},
+}
+
 func newSPResourceCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "resource",
@@ -52,7 +69,14 @@ func newSPResourceListCommand() *cobra.Command {
 				listCmd += fmt.Sprintf(" --page-size %d", pageSize)
 			}
 
-			formatter, err := newFormatter(cmd, spResourceTableDef, listCmd)
+			showDeleted, _ := cmd.Flags().GetBool("show-deleted")
+
+			tableDef := spResourceTableDef
+			if showDeleted {
+				tableDef = spResourceWithDeletedTableDef
+			}
+
+			formatter, err := newFormatter(cmd, tableDef, listCmd)
 			if err != nil {
 				return err
 			}
@@ -67,6 +91,9 @@ func newSPResourceListCommand() *cobra.Command {
 			}
 			if provider, _ := cmd.Flags().GetString("provider"); provider != "" {
 				params.Provider = &provider
+			}
+			if showDeleted {
+				params.ShowDeleted = &showDeleted
 			}
 
 			client, err := newSPResourceClient(cfg)
@@ -107,20 +134,34 @@ func newSPResourceListCommand() *cobra.Command {
 	cmd.Flags().Int32("page-size", 0, "Maximum results per page")
 	cmd.Flags().String("page-token", "", "Token for next page")
 	cmd.Flags().String("provider", "", "Filter by provider")
+	cmd.Flags().Bool("show-deleted", false, "Include soft-deleted resources")
 
 	return cmd
 }
 
 func newSPResourceGetCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "get INSTANCE_ID",
 		Short: "Get an SP resource by ID",
 		Args:  ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromCommand(cmd)
-			formatter, err := newFormatter(cmd, spResourceTableDef, "sp resource get")
+
+			showDeleted, _ := cmd.Flags().GetBool("show-deleted")
+
+			tableDef := spResourceTableDef
+			if showDeleted {
+				tableDef = spResourceWithDeletedTableDef
+			}
+
+			formatter, err := newFormatter(cmd, tableDef, "sp resource get")
 			if err != nil {
 				return err
+			}
+
+			params := &sprmapi.GetInstanceParams{}
+			if showDeleted {
+				params.ShowDeleted = &showDeleted
 			}
 
 			client, err := newSPResourceClient(cfg)
@@ -131,7 +172,7 @@ func newSPResourceGetCommand() *cobra.Command {
 			ctx, cancel := requestContext(cmd)
 			defer cancel()
 
-			resp, err := client.GetInstance(ctx, args[0])
+			resp, err := client.GetInstance(ctx, args[0], params)
 			if err != nil {
 				return connectionError(err, cfg)
 			}
@@ -149,4 +190,8 @@ func newSPResourceGetCommand() *cobra.Command {
 			return formatter.FormatOne(result)
 		},
 	}
+
+	cmd.Flags().Bool("show-deleted", false, "Show soft-deleted resource")
+
+	return cmd
 }

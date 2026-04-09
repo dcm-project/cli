@@ -14,7 +14,7 @@ import (
 	"time"
 
 	catalogclient "github.com/dcm-project/catalog-manager/pkg/client"
-	spmclient "github.com/dcm-project/service-provider-manager/pkg/client"
+	spmclient "github.com/dcm-project/service-provider-manager/pkg/client/provider"
 	sprmclient "github.com/dcm-project/service-provider-manager/pkg/client/resource_manager"
 
 	"github.com/dcm-project/cli/internal/config"

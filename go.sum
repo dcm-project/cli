@@ -12,8 +12,8 @@ github.com/dcm-project/catalog-manager v0.0.0-20260408124701-1315c44e39b9 h1:+J3
 github.com/dcm-project/catalog-manager v0.0.0-20260408124701-1315c44e39b9/go.mod h1:Xx+nYzmOFKpo0nlSHe3/jHVz3t2dIhN3ov3w+8P2jjU=
 github.com/dcm-project/policy-manager v0.0.0-20260310132113-15bd45617e87 h1:IgIFK8eWeNHLloVuwbGZLzun8LHA6d5nqVrct7nB+S8=
 github.com/dcm-project/policy-manager v0.0.0-20260310132113-15bd45617e87/go.mod h1:a9eT8Ws0Gy/6FJGp+dWmrB4s/hyfVE0PQPats/aQW0E=
-github.com/dcm-project/service-provider-manager v0.0.0-20260324094657-8aad860d86d2 h1:A0AJ0Yog5w34xA2JSjeEKkehQn7kqObala8IVX6OjkM=
-github.com/dcm-project/service-provider-manager v0.0.0-20260324094657-8aad860d86d2/go.mod h1:c2guzDY66gCS9WeqyjsKYLsS7yr17wOvwDku6m8RfxU=
+github.com/dcm-project/service-provider-manager v0.0.0-20260402145323-bf3185a968d6 h1:chOdC2Aq4wYBPwewSBZvE8nLQtllhqBTGIcVd9VfUG4=
+github.com/dcm-project/service-provider-manager v0.0.0-20260402145323-bf3185a968d6/go.mod h1:enkKEIkI/KahXsXWW/hrWYAIFVy1VkpYSlCMRrOE8Qo=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=

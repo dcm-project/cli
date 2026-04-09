@@ -25,6 +25,19 @@ func sampleSPResourceResponse() map[string]any {
 	}
 }
 
+// sampleDeletedSPResourceResponse returns a sample soft-deleted SP resource JSON response body.
+func sampleDeletedSPResourceResponse() map[string]any {
+	return map[string]any{
+		"id":              "deleted-instance",
+		"path":            "service-type-instances/deleted-instance",
+		"provider_name":   "kubevirt-123",
+		"status":          "DELETED",
+		"deletion_status": "PENDING",
+		"create_time":     "2026-03-09T10:00:00Z",
+		"spec":            map[string]any{},
+	}
+}
+
 // emptySPResourceListResponse returns a standard empty SP resource list response body.
 func emptySPResourceListResponse() map[string]any {
 	return map[string]any{
@@ -128,6 +141,41 @@ var _ = Describe("SP Resource Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("should pass show_deleted query parameter", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.URL.Query().Get("show_deleted")).To(Equal("true"))
+
+				writeJSONResponse(w, http.StatusOK, map[string]any{
+					"instances":       []any{sampleDeletedSPResourceResponse()},
+					"next_page_token": "",
+				})
+			}))
+
+			err := executeCommand("sp", "resource", "list", "--show-deleted")
+			Expect(err).NotTo(HaveOccurred())
+
+			out := outBuf.String()
+			Expect(out).To(ContainSubstring("DELETION STATUS"))
+			Expect(out).To(ContainSubstring("PENDING"))
+		})
+
+		It("should not include deletion status column without --show-deleted", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.URL.Query().Get("show_deleted")).To(BeEmpty())
+
+				writeJSONResponse(w, http.StatusOK, map[string]any{
+					"instances":       []any{sampleSPResourceResponse()},
+					"next_page_token": "",
+				})
+			}))
+
+			err := executeCommand("sp", "resource", "list")
+			Expect(err).NotTo(HaveOccurred())
+
+			out := outBuf.String()
+			Expect(out).NotTo(ContainSubstring("DELETION STATUS"))
+		})
+
 		// TC-U126: List SP resources returns empty list
 		It("TC-U126: should display empty result for empty list", func() {
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -177,6 +225,35 @@ var _ = Describe("SP Resource Commands", func() {
 			Expect(out).To(ContainSubstring("my-instance"))
 			Expect(out).To(ContainSubstring("kubevirt-123"))
 			Expect(out).To(ContainSubstring("READY"))
+		})
+
+		It("should pass show_deleted query parameter on get", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.URL.Query().Get("show_deleted")).To(Equal("true"))
+
+				writeJSONResponse(w, http.StatusOK, sampleDeletedSPResourceResponse())
+			}))
+
+			err := executeCommand("sp", "resource", "get", "deleted-instance", "--show-deleted")
+			Expect(err).NotTo(HaveOccurred())
+
+			out := outBuf.String()
+			Expect(out).To(ContainSubstring("DELETION STATUS"))
+			Expect(out).To(ContainSubstring("PENDING"))
+		})
+
+		It("should not include deletion status column on get without --show-deleted", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.URL.Query().Get("show_deleted")).To(BeEmpty())
+
+				writeJSONResponse(w, http.StatusOK, sampleSPResourceResponse())
+			}))
+
+			err := executeCommand("sp", "resource", "get", "my-instance")
+			Expect(err).NotTo(HaveOccurred())
+
+			out := outBuf.String()
+			Expect(out).NotTo(ContainSubstring("DELETION STATUS"))
 		})
 
 		// TC-U125: Get SP resource without INSTANCE_ID fails

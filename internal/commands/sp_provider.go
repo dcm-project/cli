@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	spmapi "github.com/dcm-project/service-provider-manager/api/v1alpha1"
+	spmapi "github.com/dcm-project/service-provider-manager/api/v1alpha1/provider"
 
 	"github.com/dcm-project/cli/internal/config"
 	"github.com/dcm-project/cli/internal/output"

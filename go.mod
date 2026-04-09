@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/dcm-project/catalog-manager v0.0.0-20260408124701-1315c44e39b9
 	github.com/dcm-project/policy-manager v0.0.0-20260310132113-15bd45617e87
-	github.com/dcm-project/service-provider-manager v0.0.0-20260324094657-8aad860d86d2
+	github.com/dcm-project/service-provider-manager v0.0.0-20260402145323-bf3185a968d6
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/cobra v1.10.2

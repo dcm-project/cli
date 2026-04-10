@@ -146,7 +146,7 @@ var _ = Describe("SP Resource Commands", func() {
 				Expect(r.URL.Query().Get("show_deleted")).To(Equal("true"))
 
 				writeJSONResponse(w, http.StatusOK, map[string]any{
-					"instances":       []any{sampleDeletedSPResourceResponse()},
+					"instances":       []any{sampleSPResourceResponse(), sampleDeletedSPResourceResponse()},
 					"next_page_token": "",
 				})
 			}))
@@ -156,6 +156,8 @@ var _ = Describe("SP Resource Commands", func() {
 
 			out := outBuf.String()
 			Expect(out).To(ContainSubstring("DELETION STATUS"))
+			Expect(out).To(ContainSubstring("my-instance"))
+			Expect(out).To(ContainSubstring("deleted-instance"))
 			Expect(out).To(ContainSubstring("PENDING"))
 		})
 
@@ -174,6 +176,8 @@ var _ = Describe("SP Resource Commands", func() {
 
 			out := outBuf.String()
 			Expect(out).NotTo(ContainSubstring("DELETION STATUS"))
+			Expect(out).To(ContainSubstring("my-instance"))
+			Expect(out).ToNot(ContainSubstring("deleted-instance"))
 		})
 
 		// TC-U126: List SP resources returns empty list
@@ -239,6 +243,7 @@ var _ = Describe("SP Resource Commands", func() {
 
 			out := outBuf.String()
 			Expect(out).To(ContainSubstring("DELETION STATUS"))
+			Expect(out).To(ContainSubstring("deleted-instance"))
 			Expect(out).To(ContainSubstring("PENDING"))
 		})
 
@@ -254,6 +259,7 @@ var _ = Describe("SP Resource Commands", func() {
 
 			out := outBuf.String()
 			Expect(out).NotTo(ContainSubstring("DELETION STATUS"))
+			Expect(out).To(ContainSubstring("my-instance"))
 		})
 
 		// TC-U125: Get SP resource without INSTANCE_ID fails

@@ -1174,7 +1174,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** A mock server returning an SP provider with all fields populated
 - **When:** `dcm sp provider get kubevirt-123` is executed with `--output table`
-- **Then:** The table output includes columns: ID, NAME, SERVICE TYPE, STATUS, HEALTH, CREATED
+- **Then:** The table output includes columns: ID, NAME, SERVICE TYPE, HEALTH, CREATED
 
 ### TC-U147: SP command registers provider subcommand
 

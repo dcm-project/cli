@@ -57,7 +57,7 @@ Topic 11 implements the `dcm sp provider` command group with read-only subcomman
 
 2. **Separate API type import** — The SP Manager has its API types in `api/v1alpha1`, imported as `spmapi` for `ListProvidersParams`.
 
-3. **Table columns** — ID, NAME, SERVICE TYPE, STATUS, HEALTH, CREATED per spec section 4.11. Fields map to `id`, `name`, `service_type`, `status`, `health_status`, `create_time` from the `Provider` type.
+3. **Table columns** — ID, NAME, SERVICE TYPE, HEALTH, CREATED per spec section 4.11. Fields map to `id`, `name`, `service_type`, `health_status`, `create_time` from the `Provider` type. (Updated 2026-04-22: removed STATUS column after upstream API dropped the `status` field.)
 
 4. **List response uses `providers` field** — The SP Manager's `ProviderList` type uses `providers` for the array and `next_page_token` for pagination.
 

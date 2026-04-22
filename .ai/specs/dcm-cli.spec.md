@@ -1246,8 +1246,8 @@ SP provider health check.
 #### Table Output Columns
 
 ```
-ID              NAME            SERVICE TYPE    STATUS      HEALTH    CREATED
-kubevirt-123    KubeVirt SP     compute         registered  healthy   2026-03-09T10:00:00Z
+ID              NAME            SERVICE TYPE    HEALTH    CREATED
+kubevirt-123    KubeVirt SP     compute         healthy   2026-03-09T10:00:00Z
 ```
 
 #### Acceptance Criteria

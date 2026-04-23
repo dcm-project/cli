@@ -20,7 +20,6 @@ func sampleSPProviderResponse() map[string]any {
 		"path":          "providers/kubevirt-123",
 		"name":          "KubeVirt SP",
 		"service_type":  "compute",
-		"status":        "registered",
 		"health_status": "healthy",
 		"create_time":   "2026-03-09T10:00:00Z",
 	}
@@ -91,7 +90,6 @@ var _ = Describe("SP Provider Commands", func() {
 			Expect(out).To(ContainSubstring("kubevirt-123"))
 			Expect(out).To(ContainSubstring("KubeVirt SP"))
 			Expect(out).To(ContainSubstring("compute"))
-			Expect(out).To(ContainSubstring("registered"))
 		})
 
 		// TC-U140: List SP providers with pagination
@@ -180,7 +178,6 @@ var _ = Describe("SP Provider Commands", func() {
 			Expect(out).To(ContainSubstring("kubevirt-123"))
 			Expect(out).To(ContainSubstring("KubeVirt SP"))
 			Expect(out).To(ContainSubstring("compute"))
-			Expect(out).To(ContainSubstring("registered"))
 		})
 
 		// TC-U143: Get SP provider without PROVIDER_ID fails
@@ -225,13 +222,12 @@ var _ = Describe("SP Provider Commands", func() {
 			Expect(out).To(ContainSubstring("ID"))
 			Expect(out).To(ContainSubstring("NAME"))
 			Expect(out).To(ContainSubstring("SERVICE TYPE"))
-			Expect(out).To(ContainSubstring("STATUS"))
 			Expect(out).To(ContainSubstring("HEALTH"))
 			Expect(out).To(ContainSubstring("CREATED"))
+			Expect(out).NotTo(ContainSubstring("STATUS"))
 			Expect(out).To(ContainSubstring("kubevirt-123"))
 			Expect(out).To(ContainSubstring("KubeVirt SP"))
 			Expect(out).To(ContainSubstring("compute"))
-			Expect(out).To(ContainSubstring("registered"))
 			Expect(out).To(ContainSubstring("healthy"))
 			Expect(out).To(ContainSubstring("2026-03-09T10:00:00Z"))
 		})

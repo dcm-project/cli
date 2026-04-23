@@ -13,17 +13,16 @@ import (
 )
 
 var spProviderTableDef = &output.TableDef{
-	Headers: []string{"ID", "NAME", "SERVICE TYPE", "STATUS", "HEALTH", "CREATED"},
+	Headers: []string{"ID", "NAME", "SERVICE TYPE", "HEALTH", "CREATED"},
 	RowFunc: func(resource any) []string {
 		m, ok := resource.(map[string]any)
 		if !ok {
-			return []string{"", "", "", "", "", ""}
+			return []string{"", "", "", "", ""}
 		}
 		return []string{
 			stringifyValue(m, "id"),
 			stringifyValue(m, "name"),
 			stringifyValue(m, "service_type"),
-			stringifyValue(m, "status"),
 			stringifyValue(m, "health_status"),
 			stringifyValue(m, "create_time"),
 		}

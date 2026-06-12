@@ -125,7 +125,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 
 			// TLS flags are present but should be silently ignored for http://
 			err := executeWithArgs(
-				"--api-gateway-url", server.URL,
+				"--control-plane-url", server.URL,
 				"--tls-skip-verify",
 				"policy", "list",
 			)
@@ -152,7 +152,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			caFile := writePEM(tmpDir, "ca.pem", ca.certPEM)
 
 			err = executeWithArgs(
-				"--api-gateway-url", server.URL,
+				"--control-plane-url", server.URL,
 				"--tls-ca-cert", caFile,
 				"policy", "list",
 			)
@@ -166,7 +166,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			defer server.Close()
 
 			err := executeWithArgs(
-				"--api-gateway-url", server.URL,
+				"--control-plane-url", server.URL,
 				"--tls-skip-verify",
 				"policy", "list",
 			)
@@ -180,7 +180,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			defer server.Close()
 
 			err := executeWithArgs(
-				"--api-gateway-url", server.URL,
+				"--control-plane-url", server.URL,
 				"policy", "list",
 			)
 			Expect(err).To(HaveOccurred())
@@ -215,7 +215,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			keyFile := writePEM(tmpDir, "client-key.pem", clientKey)
 
 			err = executeWithArgs(
-				"--api-gateway-url", server.URL,
+				"--control-plane-url", server.URL,
 				"--tls-ca-cert", caFile,
 				"--tls-client-cert", certFile,
 				"--tls-client-key", keyFile,
@@ -231,7 +231,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			certFile := writePEM(tmpDir, "client.pem", []byte("dummy"))
 
 			err := executeWithArgs(
-				"--api-gateway-url", "https://localhost:9999",
+				"--control-plane-url", "https://localhost:9999",
 				"--tls-client-cert", certFile,
 				"--tls-skip-verify",
 				"policy", "list",
@@ -248,7 +248,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			keyFile := writePEM(tmpDir, "client-key.pem", []byte("dummy"))
 
 			err := executeWithArgs(
-				"--api-gateway-url", "https://localhost:9999",
+				"--control-plane-url", "https://localhost:9999",
 				"--tls-client-key", keyFile,
 				"--tls-skip-verify",
 				"policy", "list",
@@ -262,7 +262,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 
 		It("should return error when --tls-ca-cert file does not exist", func() {
 			err := executeWithArgs(
-				"--api-gateway-url", "https://localhost:9999",
+				"--control-plane-url", "https://localhost:9999",
 				"--tls-ca-cert", "/nonexistent/ca.pem",
 				"--tls-skip-verify",
 				"policy", "list",
@@ -280,7 +280,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			caFile := writePEM(tmpDir, "bad-ca.pem", []byte("not a certificate"))
 
 			err := executeWithArgs(
-				"--api-gateway-url", "https://localhost:9999",
+				"--control-plane-url", "https://localhost:9999",
 				"--tls-ca-cert", caFile,
 				"--tls-skip-verify",
 				"policy", "list",
@@ -294,7 +294,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 			keyFile := writePEM(tmpDir, "client-key.pem", []byte("dummy"))
 
 			err := executeWithArgs(
-				"--api-gateway-url", "https://localhost:9999",
+				"--control-plane-url", "https://localhost:9999",
 				"--tls-client-cert", "/nonexistent/client.pem",
 				"--tls-client-key", keyFile,
 				"--tls-skip-verify",
@@ -312,7 +312,7 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 
 			// Even with mismatched mTLS flags, http:// should succeed
 			err := executeWithArgs(
-				"--api-gateway-url", server.URL,
+				"--control-plane-url", server.URL,
 				"--tls-client-cert", "/nonexistent/client.pem",
 				"policy", "list",
 			)

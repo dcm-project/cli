@@ -36,14 +36,13 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 
-	// Wrap flag parsing errors as usage errors (exit code 2).
 	cmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 		return &UsageError{Err: err}
 	})
 
-	// Global flags
 	flags := cmd.PersistentFlags()
-	flags.String("api-gateway-url", "http://localhost:9080", "API Gateway URL")
+	flags.String("control-plane-url", "http://localhost:8080", "Control plane API URL")
+	flags.String("api-gateway-url", "http://localhost:8080", "Deprecated: use --control-plane-url")
 	flags.StringP("output", "o", "table", "Output format: table, json, yaml")
 	flags.Int("timeout", 30, "Request timeout in seconds")
 	flags.String("config", "", "Path to config file (default: ~/.dcm/config.yaml)")
@@ -52,7 +51,6 @@ func NewRootCommand() *cobra.Command {
 	flags.String("tls-client-key", "", "Path to client private key file for mTLS")
 	flags.Bool("tls-skip-verify", false, "Skip TLS certificate verification")
 
-	// Register subcommand groups
 	cmd.AddCommand(newPolicyCommand())
 	cmd.AddCommand(newCatalogCommand())
 	cmd.AddCommand(newSPCommand())

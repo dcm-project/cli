@@ -64,10 +64,10 @@ func newFormatter(cmd *cobra.Command, table *output.TableDef, command string) (*
 }
 
 // buildHTTPClient creates an HTTP client from the resolved configuration.
-// When the API Gateway URL uses https://, TLS is configured using the
+// When the control plane URL uses https://, TLS is configured using the
 // TLS-related settings. When it uses http://, TLS settings are ignored.
 func buildHTTPClient(cfg *config.Config) (*http.Client, error) {
-	if !strings.HasPrefix(cfg.APIGatewayURL, "https://") {
+	if !strings.HasPrefix(cfg.ControlPlaneURL, "https://") {
 		return &http.Client{}, nil
 	}
 
@@ -109,7 +109,7 @@ func buildHTTPClient(cfg *config.Config) (*http.Client, error) {
 
 // apiBaseURL returns the API base URL with the /api/v1alpha1 suffix.
 func apiBaseURL(cfg *config.Config) string {
-	return strings.TrimRight(cfg.APIGatewayURL, "/") + "/api/v1alpha1"
+	return strings.TrimRight(cfg.ControlPlaneURL, "/") + "/api/v1alpha1"
 }
 
 // parseInputFile reads a YAML or JSON file and returns its content as a map.
@@ -180,7 +180,7 @@ func connectionError(err error, cfg *config.Config) error {
 	if isTimeoutError(err) {
 		return fmt.Errorf("request timed out after %d seconds", cfg.Timeout)
 	}
-	return fmt.Errorf("failed to connect to API Gateway at %s: %w", cfg.APIGatewayURL, err)
+	return fmt.Errorf("failed to connect to control plane at %s: %w", cfg.ControlPlaneURL, err)
 }
 
 // isTimeoutError checks whether an error is a timeout (context deadline or net timeout).

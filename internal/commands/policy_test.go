@@ -20,6 +20,7 @@ import (
 // clearDCMEnvVars removes all DCM_* environment variables to isolate tests.
 func clearDCMEnvVars() {
 	for _, env := range []string{
+		"DCM_CONTROL_PLANE_URL",
 		"DCM_API_GATEWAY_URL",
 		"DCM_OUTPUT_FORMAT",
 		"DCM_TIMEOUT",
@@ -108,7 +109,7 @@ var _ = Describe("Policy Commands", func() {
 	})
 
 	// executeCommand creates a root command, sets up output capture, and executes
-	// with the given args prepended by --api-gateway-url and --config.
+	// with the given args prepended by --control-plane-url and --config.
 	executeCommand := func(args ...string) error {
 		cmd := commands.NewRootCommand()
 		outBuf = new(bytes.Buffer)
@@ -120,7 +121,7 @@ var _ = Describe("Policy Commands", func() {
 			"--config", nonexistentConfigPath(),
 		}
 		if server != nil {
-			fullArgs = append(fullArgs, "--api-gateway-url", server.URL)
+			fullArgs = append(fullArgs, "--control-plane-url", server.URL)
 		}
 		fullArgs = append(fullArgs, args...)
 		cmd.SetArgs(fullArgs)
@@ -579,7 +580,7 @@ var _ = Describe("Policy Commands", func() {
 			cmd.SetErr(errBuf)
 			cmd.SetArgs([]string{
 				"--config", nonexistentConfigPath(),
-				"--api-gateway-url", closedURL,
+				"--control-plane-url", closedURL,
 				"policy", "list",
 			})
 

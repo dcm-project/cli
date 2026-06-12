@@ -11,9 +11,9 @@ import (
 	"github.com/dcm-project/cli/internal/config"
 )
 
-// clearDCMEnvVars removes all DCM_* environment variables to isolate tests.
 func clearDCMEnvVars() {
 	envVars := []string{
+		"DCM_CONTROL_PLANE_URL",
 		"DCM_API_GATEWAY_URL",
 		"DCM_OUTPUT_FORMAT",
 		"DCM_TIMEOUT",
@@ -28,7 +28,6 @@ func clearDCMEnvVars() {
 	}
 }
 
-// writeConfigFile creates a temporary config file with the given YAML content.
 func writeConfigFile(content string) string {
 	dir := GinkgoT().TempDir()
 	path := filepath.Join(dir, "config.yaml")
@@ -37,80 +36,82 @@ func writeConfigFile(content string) string {
 	return path
 }
 
+func loadConfig(args ...string) *config.Config {
+	cmd := commands.NewRootCommand()
+	cmd.SetArgs(args)
+	cmd.SetOut(GinkgoWriter)
+	cmd.SetErr(GinkgoWriter)
+	_ = cmd.Execute()
+
+	cfg, err := config.Load(cmd)
+	Expect(err).NotTo(HaveOccurred())
+	return cfg
+}
+
 var _ = Describe("Configuration", func() {
 	BeforeEach(func() {
 		clearDCMEnvVars()
 	})
 
-	// TC-U001: Load configuration from config file
 	Describe("TC-U001: Config file loading", func() {
-		It("should load api-gateway-url from config file", func() {
-			cfgPath := writeConfigFile("api-gateway-url: http://custom:9080\n")
-			cmd := commands.NewRootCommand()
-			cmd.SetArgs([]string{"--config", cfgPath, "version"})
-			cmd.SetOut(GinkgoWriter)
-			cmd.SetErr(GinkgoWriter)
-			_ = cmd.Execute()
+		It("should load control-plane-url from config file", func() {
+			cfgPath := writeConfigFile("control-plane-url: http://custom:8080\n")
+			cfg := loadConfig("--config", cfgPath, "version")
+			Expect(cfg.ControlPlaneURL).To(Equal("http://custom:8080"))
+		})
 
-			cfg, err := config.Load(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cfg.APIGatewayURL).To(Equal("http://custom:9080"))
+		It("should still load legacy api-gateway-url from config file", func() {
+			cfgPath := writeConfigFile("api-gateway-url: http://legacy:9080\n")
+			cfg := loadConfig("--config", cfgPath, "version")
+			Expect(cfg.ControlPlaneURL).To(Equal("http://legacy:9080"))
 		})
 	})
 
-	// TC-U002: Environment variable overrides config file
 	Describe("TC-U002: Env var overrides config file", func() {
-		It("should use environment variable over config file value", func() {
-			cfgPath := writeConfigFile("api-gateway-url: http://file:9080\n")
-			GinkgoT().Setenv("DCM_API_GATEWAY_URL", "http://env:9080")
+		It("should use DCM_CONTROL_PLANE_URL over config file value", func() {
+			cfgPath := writeConfigFile("control-plane-url: http://file:8080\n")
+			GinkgoT().Setenv("DCM_CONTROL_PLANE_URL", "http://env:8080")
+			cfg := loadConfig("--config", cfgPath, "version")
+			Expect(cfg.ControlPlaneURL).To(Equal("http://env:8080"))
+		})
 
-			cmd := commands.NewRootCommand()
-			cmd.SetArgs([]string{"--config", cfgPath, "version"})
-			cmd.SetOut(GinkgoWriter)
-			cmd.SetErr(GinkgoWriter)
-			_ = cmd.Execute()
-
-			cfg, err := config.Load(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cfg.APIGatewayURL).To(Equal("http://env:9080"))
+		It("should still use legacy DCM_API_GATEWAY_URL over config file value", func() {
+			cfgPath := writeConfigFile("control-plane-url: http://file:8080\n")
+			GinkgoT().Setenv("DCM_API_GATEWAY_URL", "http://legacy-env:9080")
+			cfg := loadConfig("--config", cfgPath, "version")
+			Expect(cfg.ControlPlaneURL).To(Equal("http://legacy-env:9080"))
 		})
 	})
 
-	// TC-U003: CLI flag overrides environment variable and config file
 	Describe("TC-U003: CLI flag overrides env var and config file", func() {
-		It("should use CLI flag over environment variable and config file", func() {
-			cfgPath := writeConfigFile("api-gateway-url: http://file:9080\n")
-			GinkgoT().Setenv("DCM_API_GATEWAY_URL", "http://env:9080")
-
-			cmd := commands.NewRootCommand()
-			cmd.SetArgs([]string{
+		It("should use --control-plane-url over environment and config file", func() {
+			cfgPath := writeConfigFile("control-plane-url: http://file:8080\n")
+			GinkgoT().Setenv("DCM_CONTROL_PLANE_URL", "http://env:8080")
+			cfg := loadConfig(
 				"--config", cfgPath,
-				"--api-gateway-url", "http://flag:9080",
+				"--control-plane-url", "http://flag:8080",
 				"version",
-			})
-			cmd.SetOut(GinkgoWriter)
-			cmd.SetErr(GinkgoWriter)
-			_ = cmd.Execute()
+			)
+			Expect(cfg.ControlPlaneURL).To(Equal("http://flag:8080"))
+		})
 
-			cfg, err := config.Load(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cfg.APIGatewayURL).To(Equal("http://flag:9080"))
+		It("should still accept deprecated --api-gateway-url flag", func() {
+			cfgPath := writeConfigFile("control-plane-url: http://file:8080\n")
+			GinkgoT().Setenv("DCM_CONTROL_PLANE_URL", "http://env:8080")
+			cfg := loadConfig(
+				"--config", cfgPath,
+				"--api-gateway-url", "http://legacy-flag:9080",
+				"version",
+			)
+			Expect(cfg.ControlPlaneURL).To(Equal("http://legacy-flag:9080"))
 		})
 	})
 
-	// TC-U004: Default values applied when no config specified
 	Describe("TC-U004: Built-in defaults", func() {
 		It("should apply default values when no config file, env vars, or flags are set", func() {
 			cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
-			cmd := commands.NewRootCommand()
-			cmd.SetArgs([]string{"--config", cfgPath, "version"})
-			cmd.SetOut(GinkgoWriter)
-			cmd.SetErr(GinkgoWriter)
-			_ = cmd.Execute()
-
-			cfg, err := config.Load(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cfg.APIGatewayURL).To(Equal("http://localhost:9080"))
+			cfg := loadConfig("--config", cfgPath, "version")
+			Expect(cfg.ControlPlaneURL).To(Equal("http://localhost:8080"))
 			Expect(cfg.OutputFormat).To(Equal("table"))
 			Expect(cfg.Timeout).To(Equal(30))
 			Expect(cfg.TLSCACert).To(BeEmpty())
@@ -120,75 +121,41 @@ var _ = Describe("Configuration", func() {
 		})
 	})
 
-	// TC-U005: Missing config file does not cause failure
 	Describe("TC-U005: Missing config file", func() {
 		It("should not fail when the config file does not exist", func() {
 			cfgPath := filepath.Join(GinkgoT().TempDir(), "does-not-exist.yaml")
-			cmd := commands.NewRootCommand()
-			cmd.SetArgs([]string{"--config", cfgPath, "version"})
-			cmd.SetOut(GinkgoWriter)
-			cmd.SetErr(GinkgoWriter)
-			_ = cmd.Execute()
-
-			cfg, err := config.Load(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cfg.APIGatewayURL).To(Equal("http://localhost:9080"))
+			cfg := loadConfig("--config", cfgPath, "version")
+			Expect(cfg.ControlPlaneURL).To(Equal("http://localhost:8080"))
 		})
 	})
 
-	// TC-U006: Custom config file path via --config flag
 	Describe("TC-U006: Custom config file via --config", func() {
 		It("should load configuration from a custom file path", func() {
 			cfgPath := writeConfigFile("timeout: 60\n")
-			cmd := commands.NewRootCommand()
-			cmd.SetArgs([]string{"--config", cfgPath, "version"})
-			cmd.SetOut(GinkgoWriter)
-			cmd.SetErr(GinkgoWriter)
-			_ = cmd.Execute()
-
-			cfg, err := config.Load(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			cfg := loadConfig("--config", cfgPath, "version")
 			Expect(cfg.Timeout).To(Equal(60))
 		})
 	})
 
-	// TC-U007: Custom config file path via DCM_CONFIG environment variable
 	Describe("TC-U007: Custom config file via DCM_CONFIG", func() {
 		It("should load configuration from DCM_CONFIG path", func() {
 			cfgPath := writeConfigFile("timeout: 45\n")
 			GinkgoT().Setenv("DCM_CONFIG", cfgPath)
-
-			cmd := commands.NewRootCommand()
-			cmd.SetArgs([]string{"version"})
-			cmd.SetOut(GinkgoWriter)
-			cmd.SetErr(GinkgoWriter)
-			_ = cmd.Execute()
-
-			cfg, err := config.Load(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			cfg := loadConfig("version")
 			Expect(cfg.Timeout).To(Equal(45))
 		})
 	})
 
-	// TC-U008: All environment variables are supported
 	Describe("TC-U008: All environment variables", func() {
 		DescribeTable("should load configuration from each environment variable",
 			func(envVar, envValue, configField string, expected any) {
 				cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
 				GinkgoT().Setenv(envVar, envValue)
-
-				cmd := commands.NewRootCommand()
-				cmd.SetArgs([]string{"--config", cfgPath, "version"})
-				cmd.SetOut(GinkgoWriter)
-				cmd.SetErr(GinkgoWriter)
-				_ = cmd.Execute()
-
-				cfg, err := config.Load(cmd)
-				Expect(err).NotTo(HaveOccurred())
+				cfg := loadConfig("--config", cfgPath, "version")
 
 				switch configField {
-				case "APIGatewayURL":
-					Expect(cfg.APIGatewayURL).To(Equal(expected))
+				case "ControlPlaneURL":
+					Expect(cfg.ControlPlaneURL).To(Equal(expected))
 				case "OutputFormat":
 					Expect(cfg.OutputFormat).To(Equal(expected))
 				case "Timeout":
@@ -203,7 +170,8 @@ var _ = Describe("Configuration", func() {
 					Expect(cfg.TLSSkipVerify).To(Equal(expected))
 				}
 			},
-			Entry("DCM_API_GATEWAY_URL", "DCM_API_GATEWAY_URL", "http://e:9080", "APIGatewayURL", "http://e:9080"),
+			Entry("DCM_CONTROL_PLANE_URL", "DCM_CONTROL_PLANE_URL", "http://cp:8080", "ControlPlaneURL", "http://cp:8080"),
+			Entry("DCM_API_GATEWAY_URL", "DCM_API_GATEWAY_URL", "http://legacy:9080", "ControlPlaneURL", "http://legacy:9080"),
 			Entry("DCM_OUTPUT_FORMAT", "DCM_OUTPUT_FORMAT", "json", "OutputFormat", "json"),
 			Entry("DCM_TIMEOUT", "DCM_TIMEOUT", "60", "Timeout", 60),
 			Entry("DCM_TLS_CA_CERT", "DCM_TLS_CA_CERT", "/path/ca.pem", "TLSCACert", "/path/ca.pem"),

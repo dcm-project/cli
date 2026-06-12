@@ -84,7 +84,7 @@ var _ = Describe("Root Command", func() {
 
 			helpOutput := out.String()
 			expectedFlags := []string{
-				"--api-gateway-url",
+				"--control-plane-url",
 				"--output",
 				"-o",
 				"--timeout",

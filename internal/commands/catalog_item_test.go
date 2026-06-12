@@ -63,7 +63,7 @@ var _ = Describe("Catalog Item Commands", func() {
 			"--config", nonexistentConfigPath(),
 		}
 		if server != nil {
-			fullArgs = append(fullArgs, "--api-gateway-url", server.URL)
+			fullArgs = append(fullArgs, "--control-plane-url", server.URL)
 		}
 		fullArgs = append(fullArgs, args...)
 		cmd.SetArgs(fullArgs)

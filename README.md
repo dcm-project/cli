@@ -92,7 +92,7 @@ The CLI uses **generated clients** from `policy-manager/pkg/client`, `catalog-ma
 Default location: `~/.dcm/config.yaml`
 
 ```yaml
-api-gateway-url: http://localhost:9080
+control-plane-url: http://localhost:8080
 output-format: table
 timeout: 30
 tls-ca-cert: ""
@@ -105,7 +105,8 @@ tls-skip-verify: false
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DCM_API_GATEWAY_URL` | API Gateway base URL | `http://localhost:9080` |
+| `DCM_CONTROL_PLANE_URL` | Control plane API base URL | `http://localhost:8080` |
+| `DCM_API_GATEWAY_URL` | Deprecated alias for `DCM_CONTROL_PLANE_URL` | — |
 | `DCM_OUTPUT_FORMAT` | Output format (`table`, `json`, `yaml`) | `table` |
 | `DCM_TIMEOUT` | Request timeout in seconds | `30` |
 | `DCM_CONFIG` | Path to config file | `~/.dcm/config.yaml` |
@@ -118,8 +119,8 @@ tls-skip-verify: false
 
 Configuration values are resolved in the following order (highest to lowest priority):
 
-1. **Command-line flags** (`--api-gateway-url`, `--output`, `--timeout`)
-2. **Environment variables** (`DCM_API_GATEWAY_URL`, etc.)
+1. **Command-line flags** (`--control-plane-url`, `--output`, `--timeout`)
+2. **Environment variables** (`DCM_CONTROL_PLANE_URL`, etc.)
 3. **Configuration file** (`~/.dcm/config.yaml`)
 4. **Built-in defaults**
 
@@ -129,7 +130,8 @@ These flags are available on all commands:
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--api-gateway-url` | | API Gateway URL |
+| `--control-plane-url` | | Control plane API URL |
+| `--api-gateway-url` | | Deprecated; use `--control-plane-url` |
 | `--output` | `-o` | Output format: `table`, `json`, `yaml` |
 | `--timeout` | | Request timeout in seconds |
 | `--config` | | Path to config file |
@@ -588,7 +590,7 @@ Manages CLI configuration with file persistence and environment/flag overrides.
 package config
 
 type Config struct {
-    APIGatewayURL string `yaml:"api-gateway-url" mapstructure:"api-gateway-url"`
+    ControlPlaneURL string `yaml:"control-plane-url" mapstructure:"control-plane-url"`
     OutputFormat  string `yaml:"output-format" mapstructure:"output-format"`
     Timeout       int    `yaml:"timeout" mapstructure:"timeout"`
     TLSCACert     string `yaml:"tls-ca-cert" mapstructure:"tls-ca-cert"`
@@ -733,11 +735,11 @@ Both clients are instantiated with the API Gateway URL and a configured HTTP cli
 
 ```go
 httpClient := buildHTTPClient(cfg) // configures TLS transport when URL is https
-policyClient, _ := policyclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
+policyClient, _ := policyclient.NewClient(cfg.ControlPlaneURL + "/api/v1alpha1",
     policyclient.WithHTTPClient(httpClient))
-catalogClient, _ := catalogclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
+catalogClient, _ := catalogclient.NewClient(cfg.ControlPlaneURL + "/api/v1alpha1",
     catalogclient.WithHTTPClient(httpClient))
-sprmClient, _ := sprmclient.NewClient(cfg.APIGatewayURL + "/api/v1alpha1",
+sprmClient, _ := sprmclient.NewClient(cfg.ControlPlaneURL + "/api/v1alpha1",
     sprmclient.WithHTTPClient(httpClient))
 ```
 
@@ -1149,7 +1151,7 @@ go test -run TestName ./internal/commands  # Specific test
 Running E2E tests:
 
 ```bash
-make test-e2e   # Requires DCM_API_GATEWAY_URL pointing to live stack
+make test-e2e   # Requires DCM_CONTROL_PLANE_URL pointing to live stack
 ```
 
 ---

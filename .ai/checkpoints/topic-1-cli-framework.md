@@ -18,7 +18,7 @@ Topic 1 implements the foundational CLI structure per spec section 4.1. It provi
 | REQ-CLI-020 | Root command `dcm` with global flags | Done |
 | REQ-CLI-030 | Subcommand groups: `policy`, `catalog`, `version` | Done |
 | REQ-CLI-040 | `catalog` subgroups: `service-type`, `item`, `instance` | Done |
-| REQ-CLI-050 | Global flags: `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | Done |
+| REQ-CLI-050 | Global flags: `--control-plane-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | Done |
 | REQ-CLI-060 | Exit codes: 0 success, 1 runtime, 2 usage | Done |
 | REQ-CLI-070 | Entry point in `cmd/dcm/main.go` | Done |
 
@@ -54,7 +54,7 @@ Topic 1 implements the foundational CLI structure per spec section 4.1. It provi
 | `internal/commands/root_test.go` | Tests for TC-U019 through TC-U023 |
 | `.gitignore` | Ignores build artifacts, IDE files, OS files, Go test/tool outputs |
 | `.gitattributes` | Collapses generated files (`go.sum`, `go.mod`) in GitHub diffs |
-| `.golangci.yml` | golangci-lint configuration aligned with dcm-catalog-manager |
+| `.golangci.yml` | golangci-lint configuration aligned with other DCM Go repos |
 | `.github/workflows/ci.yaml` | CI workflow for running tests (uses shared workflows) |
 | `.github/workflows/lint.yaml` | Lint workflow using golangci-lint (uses shared workflows) |
 | `.github/workflows/check-clean-commits.yaml` | Clean commit check workflow (uses shared workflows) |
@@ -73,7 +73,7 @@ Topic 1 implements the foundational CLI structure per spec section 4.1. It provi
 
 5. **Stubs only** — All subcommand `RunE` functions return `nil`. Configuration (Topic 2), output formatting (Topic 3), and actual command logic (Topics 4–8) are not implemented.
 
-6. **golangci-lint** — Configuration aligned with dcm-catalog-manager. Lint issues fixed: unchecked fmt return values, unused parameters, missing package comments, gofumpt formatting.
+6. **golangci-lint** — Configuration aligned with other DCM Go repositories. Lint issues fixed: unchecked fmt return values, unused parameters, missing package comments, gofumpt formatting.
 
 7. **GitHub CI** — Three workflows (ci, lint, check-clean-commits) using shared workflows from `dcm-project/shared-workflows`, matching the pattern used by other DCM repositories.
 

@@ -14,9 +14,10 @@ an existing catalog item instance. The command sends a POST request to
 `/api/v1alpha1/catalog-item-instances/{id}:rehydrate` and displays the
 rehydrated instance in the configured output format.
 
-This feature depends on the rehydration-flow branch of the Catalog Manager fork
-(`github.com/ygalblum/dcm-catalog-manager`), integrated via a `replace`
-directive in `go.mod`.
+This feature uses the rehydrate endpoint on the control-plane catalog API
+(`RehydrateCatalogItemInstance` on `github.com/dcm-project/control-plane/pkg/catalog/client`).
+Placement runs in-process inside control-plane; the CLI does not call a separate
+placement HTTP API.
 
 ### Requirements Addressed
 
@@ -41,8 +42,8 @@ directive in `go.mod`.
 
 | File | Change | Purpose |
 |------|--------|---------|
-| `go.mod` | Modified | Added `replace` directive to use `github.com/ygalblum/dcm-catalog-manager` fork with rehydration API |
-| `go.sum` | Modified | Updated checksums for fork dependency |
+| `go.mod` | Modified | Depends on `github.com/dcm-project/control-plane` (catalog client includes rehydrate API) |
+| `go.sum` | Modified | Updated checksums for control-plane dependency |
 | `internal/commands/catalog_instance.go` | Modified | Added `newCatalogInstanceRehydrateCommand()` and registered it in `newCatalogInstanceCommand()` |
 | `internal/commands/catalog_instance_test.go` | Modified | Added 4 Ginkgo test specs for rehydrate (success, missing arg, not found, server error) |
 | `.ai/specs/dcm-cli.spec.md` | Modified | Added REQ-CIN-120, REQ-CIN-130, AC-CIN-130/140/150 for rehydrate |
@@ -53,7 +54,7 @@ directive in `go.mod`.
 
 ## Key Design Decisions
 
-1. **Fork via `replace` directive** — The upstream `catalog-manager` module does not yet have the rehydrate API. A Go module `replace` directive points to the `ygalblum/dcm-catalog-manager` fork's `rehydration-flow` branch, keeping the import paths unchanged throughout the codebase.
+1. **Control-plane catalog client** — Rehydrate is part of the catalog OpenAPI in the control-plane monorepo. The CLI calls `RehydrateCatalogItemInstance` on the generated catalog client; no fork or local `replace` directive is needed.
 
 2. **Same patterns as existing instance commands** — The rehydrate command follows the identical structure used by `get`: accepts a positional `INSTANCE_ID`, creates the catalog client, sends the request, and formats the response or error.
 

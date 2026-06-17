@@ -9,7 +9,7 @@
 
 ## Scope
 
-Topic 9 implements the `dcm sp resource` command group with read-only subcommands (`list` and `get`) per spec section 4.9. SP resources are service type instances managed by the Service Provider Resource Manager (SPRM). The CLI provides read-only access to these resources. All commands use the generated SP Resource Manager client.
+Topic 9 implements the `dcm sp resource` command group with read-only subcommands (`list` and `get`) per spec section 4.9. SP resources are service type instances exposed by the SP Resource Manager API in control-plane. The CLI provides read-only access to these resources via the generated SP resource manager client.
 
 ### Requirements Addressed
 
@@ -42,7 +42,7 @@ Topic 9 implements the `dcm sp resource` command group with read-only subcommand
 
 | File | Change | Purpose |
 |------|--------|---------|
-| `go.mod` / `go.sum` | Modified | Added `github.com/dcm-project/service-provider-manager` dependency |
+| `go.mod` / `go.sum` | Modified | Added `github.com/dcm-project/control-plane` dependency (SP resource manager client) |
 | `internal/commands/helpers.go` | Modified | Added `newSPResourceClient` using the resource_manager client package |
 | `internal/commands/sp.go` | Created | `dcm sp` parent command group |
 | `internal/commands/sp_resource.go` | Created | `list` and `get` commands with generated SP Resource Manager client |
@@ -55,15 +55,15 @@ Topic 9 implements the `dcm sp resource` command group with read-only subcommand
 
 ## Key Design Decisions
 
-1. **Generated client from service-provider-manager** — Per REQ-SPR-050, all SP resource operations use the oapi-codegen generated client from `github.com/dcm-project/service-provider-manager/pkg/client/resource_manager`. The `newSPResourceClient` function follows the same pattern as `newPolicyClient` and `newCatalogClient`, using `sprmclient.NewClient(apiBaseURL(cfg), sprmclient.WithHTTPClient(httpClient))`.
+1. **Generated client from control-plane** — Per REQ-SPR-050, all SP resource operations use the oapi-codegen generated client from `github.com/dcm-project/control-plane/pkg/sp/client/resource_manager`. The `newSPResourceClient` function follows the same pattern as `newPolicyClient` and `newCatalogClient`, using `sprmclient.NewClient(apiBaseURL(cfg), sprmclient.WithHTTPClient(httpClient))`.
 
-2. **Separate API type import** — The SP resource manager has its API types in a separate package (`api/v1alpha1/resource_manager`), imported as `sprmapi` for `ListInstancesParams`.
+2. **Separate API type import** — SP resource API types live in `github.com/dcm-project/control-plane/api/sp/v1alpha1/resource_manager`, imported as `sprmapi` for `ListInstancesParams`.
 
 3. **Table columns** — ID, PROVIDER, STATUS, CREATED per spec section 4.9. Fields map to `id`, `provider_name`, `status`, `create_time` from the `ServiceTypeInstance` type.
 
-4. **List response uses `instances` field** — Unlike the catalog manager which uses `results`, the SP Resource Manager's `ServiceTypeInstanceList` type uses `instances` for the array and `next_page_token` for pagination. The formatter re-wraps this as `results` for consistent JSON/YAML output.
+4. **List response uses `instances` field** — Unlike the catalog API which uses `results`, the SP resource manager's `ServiceTypeInstanceList` type uses `instances` for the array and `next_page_token` for pagination. The formatter re-wraps this as `results` for consistent JSON/YAML output.
 
-5. **`MaxPageSize` type difference** — The SP Resource Manager uses `*int` for `MaxPageSize` (not `*int32` like the Catalog Manager), so the `--page-size` flag value is converted from `int32` to `int`.
+5. **`MaxPageSize` type difference** — The SP resource manager client uses `*int` for `MaxPageSize` (not `*int32` like the catalog client), so the `--page-size` flag value is converted from `int32` to `int`.
 
 6. **`--provider` filter** — The `ListInstancesParams` includes a `Provider` field passed as the `provider` query parameter, matching the spec's REQ-SPR-010.
 

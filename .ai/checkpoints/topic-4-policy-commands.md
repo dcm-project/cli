@@ -50,7 +50,7 @@ Topic 4 implements the five policy CRUD commands (create, list, get, update, del
 | TC-U041 | `policy update` without `--from-file` exits code 2 | Pass |
 | TC-U062 | `policy delete POLICY_ID` sends DELETE, returns success message | Pass |
 | TC-U063 | `policy delete` without ID exits code 2 | Pass |
-| TC-U080 | Connection refused returns user-friendly error with gateway URL | Pass |
+| TC-U080 | Connection refused returns user-friendly error with control plane URL | Pass |
 | TC-U081 | Request timeout returns timeout-specific error message | Pass |
 | TC-U082 | 404 RFC 7807 error formatted to stderr, exit code 1 | Pass |
 | TC-U083 | Non-RFC-7807 error body returns `HTTP <status>: <body>` | Pass |
@@ -72,7 +72,7 @@ Topic 4 implements the five policy CRUD commands (create, list, get, update, del
 | File | Change | Purpose |
 |------|--------|---------|
 | `internal/commands/helpers.go` | Created | Shared utilities: `FormattedError`, `newFormatter`, `buildHTTPClient`, `apiBaseURL`, `parseInputFile`, `parseInputFileAs` (generic typed variant), `handleErrorResponse`, `requestContext`, `connectionError`, `isTimeoutError`, `stringifyValue` |
-| `internal/commands/policy.go` | Modified | Full CRUD implementation using generated policy-manager client |
+| `internal/commands/policy.go` | Modified | Full CRUD implementation using generated control-plane policy client |
 | `internal/commands/root.go` | Modified | Added `FormattedError` handling in `Execute()`, `requiredFlagsPreRun` hook |
 | `internal/commands/policy_test.go` | Created | 32 Ginkgo test specs with httptest-based mocking |
 
@@ -80,7 +80,7 @@ Topic 4 implements the five policy CRUD commands (create, list, get, update, del
 
 ## Key Design Decisions
 
-1. **Generated client from policy-manager** — Per REQ-XC-CLI-010, all policy operations use the oapi-codegen generated client from `github.com/dcm-project/policy-manager/pkg/client`. Client is instantiated via `policyclient.NewClient(apiBaseURL(cfg), policyclient.WithHTTPClient(buildHTTPClient(cfg)))`. Create and update commands use typed client methods (`CreatePolicy`, `UpdatePolicyWithApplicationMergePatchPlusJSONBody`) with typed request bodies (`CreatePolicyJSONRequestBody`, `UpdatePolicyApplicationMergePatchPlusJSONRequestBody`) for client-side payload validation against the generated schema.
+1. **Generated client from control-plane** — Per REQ-XC-CLI-010, all policy operations use the oapi-codegen generated client from `github.com/dcm-project/control-plane/pkg/policy/client`. Client is instantiated via `policyclient.NewClient(apiBaseURL(cfg), policyclient.WithHTTPClient(buildHTTPClient(cfg)))`. Create and update commands use typed client methods (`CreatePolicy`, `UpdatePolicyWithApplicationMergePatchPlusJSONBody`) with typed request bodies (`CreatePolicyJSONRequestBody`, `UpdatePolicyApplicationMergePatchPlusJSONRequestBody`) for client-side payload validation against the generated schema.
 
 2. **Shared helpers in `helpers.go`** — HTTP client construction, request context with timeout, error handling, input file parsing, and table cell extraction are shared across all command groups. Extracted into `helpers.go` so Topics 5-7 reuse them without duplication.
 

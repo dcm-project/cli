@@ -21,7 +21,6 @@ import (
 func clearDCMEnvVars() {
 	for _, env := range []string{
 		"DCM_CONTROL_PLANE_URL",
-		"DCM_API_GATEWAY_URL",
 		"DCM_OUTPUT_FORMAT",
 		"DCM_TIMEOUT",
 		"DCM_CONFIG",

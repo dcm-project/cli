@@ -42,7 +42,6 @@ func NewRootCommand() *cobra.Command {
 
 	flags := cmd.PersistentFlags()
 	flags.String("control-plane-url", "http://localhost:8080", "Control plane API URL")
-	flags.String("api-gateway-url", "http://localhost:8080", "Deprecated: use --control-plane-url")
 	flags.StringP("output", "o", "table", "Output format: table, json, yaml")
 	flags.Int("timeout", 30, "Request timeout in seconds")
 	flags.String("config", "", "Path to config file (default: ~/.dcm/config.yaml)")

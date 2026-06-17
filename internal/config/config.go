@@ -21,7 +21,7 @@ func WithConfig(ctx context.Context, cfg *Config) context.Context {
 	return context.WithValue(ctx, contextKey{}, cfg)
 }
 
-// FromContext retrieves the Config from a context. Returns nil if not present.
+// FromContext retrieves a Config from a context. Returns nil if not present.
 func FromContext(ctx context.Context) *Config {
 	cfg, _ := ctx.Value(contextKey{}).(*Config)
 	return cfg
@@ -48,6 +48,8 @@ type Config struct {
 func Load(cmd *cobra.Command) (*Config, error) {
 	v := viper.New()
 
+	// Built-in defaults (REQ-CFG-050)
+	v.SetDefault("control-plane-url", defaultControlPlaneURL)
 	v.SetDefault("output-format", "table")
 	v.SetDefault("timeout", 30)
 	v.SetDefault("tls-ca-cert", "")
@@ -55,7 +57,9 @@ func Load(cmd *cobra.Command) (*Config, error) {
 	v.SetDefault("tls-client-key", "")
 	v.SetDefault("tls-skip-verify", false)
 
+	// Environment variable binding (REQ-CFG-030)
 	v.SetEnvPrefix("DCM")
+	v.MustBindEnv("control-plane-url", "DCM_CONTROL_PLANE_URL")
 	v.MustBindEnv("output-format", "DCM_OUTPUT_FORMAT")
 	v.MustBindEnv("timeout", "DCM_TIMEOUT")
 	v.MustBindEnv("tls-ca-cert", "DCM_TLS_CA_CERT")
@@ -63,6 +67,7 @@ func Load(cmd *cobra.Command) (*Config, error) {
 	v.MustBindEnv("tls-client-key", "DCM_TLS_CLIENT_KEY")
 	v.MustBindEnv("tls-skip-verify", "DCM_TLS_SKIP_VERIFY")
 
+	// Config file path (REQ-CFG-010, REQ-CFG-020)
 	configPath := configFilePath(cmd)
 	if configPath != "" {
 		v.SetConfigFile(configPath)
@@ -74,6 +79,7 @@ func Load(cmd *cobra.Command) (*Config, error) {
 		v.SetConfigFile(filepath.Join(home, ".dcm", "config.yaml"))
 	}
 
+	// Read config file — ignore "not found" errors (REQ-CFG-070)
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			if !os.IsNotExist(err) {
@@ -82,6 +88,7 @@ func Load(cmd *cobra.Command) (*Config, error) {
 		}
 	}
 
+	// Bind CLI flags so they override env vars and config file (REQ-CFG-040)
 	if cmd != nil {
 		if err := bindFlags(v, cmd); err != nil {
 			return nil, err
@@ -93,35 +100,7 @@ func Load(cmd *cobra.Command) (*Config, error) {
 		return nil, fmt.Errorf("unmarshalling config: %w", err)
 	}
 
-	cfg.ControlPlaneURL = resolveControlPlaneURL(v, cmd)
 	return &cfg, nil
-}
-
-func resolveControlPlaneURL(v *viper.Viper, cmd *cobra.Command) string {
-	if cmd != nil {
-		if f := cmd.Root().PersistentFlags().Lookup("control-plane-url"); f != nil && f.Changed {
-			return f.Value.String()
-		}
-		if f := cmd.Root().PersistentFlags().Lookup("api-gateway-url"); f != nil && f.Changed {
-			return f.Value.String()
-		}
-	}
-
-	if u := os.Getenv("DCM_CONTROL_PLANE_URL"); u != "" {
-		return u
-	}
-	if u := os.Getenv("DCM_API_GATEWAY_URL"); u != "" {
-		return u
-	}
-
-	if v.InConfig("control-plane-url") {
-		return v.GetString("control-plane-url")
-	}
-	if v.InConfig("api-gateway-url") {
-		return v.GetString("api-gateway-url")
-	}
-
-	return defaultControlPlaneURL
 }
 
 // configFilePath resolves the config file path from the --config flag
@@ -143,12 +122,13 @@ func configFilePath(cmd *cobra.Command) string {
 // unset flags don't override environment variables or config file values.
 func bindFlags(v *viper.Viper, cmd *cobra.Command) error {
 	flagToKey := map[string]string{
-		"output":          "output-format",
-		"timeout":         "timeout",
-		"tls-ca-cert":     "tls-ca-cert",
-		"tls-client-cert": "tls-client-cert",
-		"tls-client-key":  "tls-client-key",
-		"tls-skip-verify": "tls-skip-verify",
+		"control-plane-url": "control-plane-url",
+		"output":            "output-format",
+		"timeout":           "timeout",
+		"tls-ca-cert":       "tls-ca-cert",
+		"tls-client-cert":   "tls-client-cert",
+		"tls-client-key":    "tls-client-key",
+		"tls-skip-verify":   "tls-skip-verify",
 	}
 
 	for flagName, configKey := range flagToKey {

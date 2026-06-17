@@ -14,7 +14,6 @@ import (
 func clearDCMEnvVars() {
 	envVars := []string{
 		"DCM_CONTROL_PLANE_URL",
-		"DCM_API_GATEWAY_URL",
 		"DCM_OUTPUT_FORMAT",
 		"DCM_TIMEOUT",
 		"DCM_CONFIG",
@@ -59,12 +58,6 @@ var _ = Describe("Configuration", func() {
 			cfg := loadConfig("--config", cfgPath, "version")
 			Expect(cfg.ControlPlaneURL).To(Equal("http://custom:8080"))
 		})
-
-		It("should still load legacy api-gateway-url from config file", func() {
-			cfgPath := writeConfigFile("api-gateway-url: http://legacy:9080\n")
-			cfg := loadConfig("--config", cfgPath, "version")
-			Expect(cfg.ControlPlaneURL).To(Equal("http://legacy:9080"))
-		})
 	})
 
 	Describe("TC-U002: Env var overrides config file", func() {
@@ -73,13 +66,6 @@ var _ = Describe("Configuration", func() {
 			GinkgoT().Setenv("DCM_CONTROL_PLANE_URL", "http://env:8080")
 			cfg := loadConfig("--config", cfgPath, "version")
 			Expect(cfg.ControlPlaneURL).To(Equal("http://env:8080"))
-		})
-
-		It("should still use legacy DCM_API_GATEWAY_URL over config file value", func() {
-			cfgPath := writeConfigFile("control-plane-url: http://file:8080\n")
-			GinkgoT().Setenv("DCM_API_GATEWAY_URL", "http://legacy-env:9080")
-			cfg := loadConfig("--config", cfgPath, "version")
-			Expect(cfg.ControlPlaneURL).To(Equal("http://legacy-env:9080"))
 		})
 	})
 
@@ -93,17 +79,6 @@ var _ = Describe("Configuration", func() {
 				"version",
 			)
 			Expect(cfg.ControlPlaneURL).To(Equal("http://flag:8080"))
-		})
-
-		It("should still accept deprecated --api-gateway-url flag", func() {
-			cfgPath := writeConfigFile("control-plane-url: http://file:8080\n")
-			GinkgoT().Setenv("DCM_CONTROL_PLANE_URL", "http://env:8080")
-			cfg := loadConfig(
-				"--config", cfgPath,
-				"--api-gateway-url", "http://legacy-flag:9080",
-				"version",
-			)
-			Expect(cfg.ControlPlaneURL).To(Equal("http://legacy-flag:9080"))
 		})
 	})
 
@@ -171,7 +146,6 @@ var _ = Describe("Configuration", func() {
 				}
 			},
 			Entry("DCM_CONTROL_PLANE_URL", "DCM_CONTROL_PLANE_URL", "http://cp:8080", "ControlPlaneURL", "http://cp:8080"),
-			Entry("DCM_API_GATEWAY_URL", "DCM_API_GATEWAY_URL", "http://legacy:9080", "ControlPlaneURL", "http://legacy:9080"),
 			Entry("DCM_OUTPUT_FORMAT", "DCM_OUTPUT_FORMAT", "json", "OutputFormat", "json"),
 			Entry("DCM_TIMEOUT", "DCM_TIMEOUT", "60", "Timeout", 60),
 			Entry("DCM_TLS_CA_CERT", "DCM_TLS_CA_CERT", "/path/ca.pem", "TLSCACert", "/path/ca.pem"),

@@ -100,7 +100,6 @@ tls-skip-verify: false
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `DCM_CONTROL_PLANE_URL` | Control plane API base URL | `http://localhost:8080` |
-| `DCM_API_GATEWAY_URL` | Deprecated alias for `DCM_CONTROL_PLANE_URL` | — |
 | `DCM_OUTPUT_FORMAT` | Output format (`table`, `json`, `yaml`) | `table` |
 | `DCM_TIMEOUT` | Request timeout in seconds | `30` |
 | `DCM_CONFIG` | Path to config file | `~/.dcm/config.yaml` |
@@ -125,7 +124,6 @@ These flags are available on all commands:
 | Flag | Short | Description |
 |------|-------|-------------|
 | `--control-plane-url` | | Control plane API URL |
-| `--api-gateway-url` | | Deprecated; use `--control-plane-url` |
 | `--output` | `-o` | Output format: `table`, `json`, `yaml` |
 | `--timeout` | | Request timeout in seconds |
 | `--config` | | Path to config file |

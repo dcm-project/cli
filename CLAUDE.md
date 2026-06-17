@@ -70,7 +70,7 @@ make test-e2e
 
 The project uses Ginkgo as the test framework with Gomega matchers. HTTP-level mocking uses `net/http/httptest`.
 
-E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`). They require a live DCM stack with `DCM_CONTROL_PLANE_URL` (or legacy `DCM_API_GATEWAY_URL`) set.
+E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`). They require a live DCM stack with `DCM_CONTROL_PLANE_URL` set.
 
 ## Key Conventions
 
@@ -78,7 +78,7 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 2. **Generated clients**: Import `github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client`. No hand-written HTTP client code.
 
-3. **Configuration precedence**: CLI flags > environment variables (`DCM_CONTROL_PLANE_URL`, legacy `DCM_API_GATEWAY_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`) > config file (`~/.dcm/config.yaml`) > built-in defaults.
+3. **Configuration precedence**: CLI flags > environment variables (`DCM_CONTROL_PLANE_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`) > config file (`~/.dcm/config.yaml`) > built-in defaults.
 
 4. **Output formatting**: All commands support `--output/-o` flag with `table` (default), `json`, and `yaml` formats.
 
@@ -89,3 +89,5 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 7. **Version injection**: Build-time ldflags set `internal/version.Version`, `internal/version.Commit`, `internal/version.BuildTime`.
 
 8. **Commit conventions**: All commit messages must include a `Co-Authored-By:` line. The `git commit` command must always use the `--signoff` flag (e.g., `git commit --signoff`).
+
+9. **Documentation sync**: When changing behavior, flags, env vars, module paths, or architecture, update all of: `README.md`, `CLAUDE.md`, `.ai/specs/`, `.ai/test-plans/`, and relevant `.ai/checkpoints/`.

@@ -143,7 +143,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 | REQ-CLI-020 | The CLI MUST define a root command `dcm` with global flags | MUST | |
 | REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `sp`, `version`, `completion` | MUST | |
 | REQ-CLI-040 | The `catalog` command MUST register subcommand groups: `service-type`, `item`, `instance` | MUST | |
-| REQ-CLI-050 | Global flags MUST include `--control-plane-url`, deprecated `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | MUST | |
+| REQ-CLI-050 | Global flags MUST include `--control-plane-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | MUST | |
 | REQ-CLI-060 | The CLI MUST exit with code 0 on success, 1 on runtime errors, 2 on usage errors | MUST | |
 | REQ-CLI-070 | The entry point (`cmd/dcm/main.go`) MUST bootstrap the root command and execute it | MUST | |
 
@@ -154,7 +154,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 - **Validates:** REQ-CLI-020, REQ-CLI-050
 - **Given** the CLI is invoked
 - **When** `dcm --help` is run
-- **Then** the global flags `--control-plane-url`, deprecated `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` MUST be listed
+- **Then** the global flags `--control-plane-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` MUST be listed
 
 ##### AC-CLI-030: Subcommand registration
 
@@ -215,7 +215,7 @@ profile/context support.
 |----|-------------|----------|-------|
 | REQ-CFG-010 | The CLI MUST load configuration from the config file at `~/.dcm/config.yaml` by default | MUST | |
 | REQ-CFG-020 | The config file path MUST be overridable via `--config` flag or `DCM_CONFIG` environment variable | MUST | |
-| REQ-CFG-030 | The CLI MUST support environment variables: `DCM_CONTROL_PLANE_URL`, legacy `DCM_API_GATEWAY_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`, `DCM_TLS_CA_CERT`, `DCM_TLS_CLIENT_CERT`, `DCM_TLS_CLIENT_KEY`, `DCM_TLS_SKIP_VERIFY` | MUST | |
+| REQ-CFG-030 | The CLI MUST support environment variables: `DCM_CONTROL_PLANE_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`, `DCM_TLS_CA_CERT`, `DCM_TLS_CLIENT_CERT`, `DCM_TLS_CLIENT_KEY`, `DCM_TLS_SKIP_VERIFY` | MUST | |
 | REQ-CFG-040 | Configuration precedence MUST be: CLI flags > environment variables > config file > built-in defaults | MUST | |
 | REQ-CFG-050 | Built-in defaults MUST be: `control-plane-url=http://localhost:8080`, `output-format=table`, `timeout=30`, `tls-ca-cert=""`, `tls-client-cert=""`, `tls-client-key=""`, `tls-skip-verify=false` | MUST | |
 | REQ-CFG-060 | The CLI MUST use Viper for configuration management | MUST | |
@@ -226,7 +226,6 @@ profile/context support.
 | Config Key | Env Var | Flag | Default | Description |
 |------------|---------|------|---------|-------------|
 | control-plane-url | DCM_CONTROL_PLANE_URL | --control-plane-url | http://localhost:8080 | Control plane base URL |
-| api-gateway-url (legacy) | DCM_API_GATEWAY_URL | --api-gateway-url | — | Deprecated alias |
 | output-format | DCM_OUTPUT_FORMAT | --output / -o | table | Output format (table, json, yaml) |
 | timeout | DCM_TIMEOUT | --timeout | 30 | Request timeout in seconds |
 | - | DCM_CONFIG | --config | ~/.dcm/config.yaml | Config file path |
@@ -254,7 +253,7 @@ profile/context support.
 ##### AC-CFG-030: Environment variable override
 
 - **Validates:** REQ-CFG-030
-- **Given** `DCM_API_GATEWAY_URL=http://env:8080` is set
+- **Given** `DCM_CONTROL_PLANE_URL=http://env:8080` is set
 - **And** the config file has `control-plane-url: http://file:8080`
 - **When** the CLI is invoked without `--control-plane-url`
 - **Then** the control-plane URL MUST be `http://env:8080`
@@ -262,7 +261,7 @@ profile/context support.
 ##### AC-CFG-040: CLI flag override
 
 - **Validates:** REQ-CFG-040
-- **Given** `DCM_API_GATEWAY_URL=http://env:8080` is set
+- **Given** `DCM_CONTROL_PLANE_URL=http://env:8080` is set
 - **And** the config file has `control-plane-url: http://file:8080`
 - **When** `dcm --control-plane-url http://flag:8080 policy list` is invoked
 - **Then** the control-plane URL MUST be `http://flag:8080`
@@ -1552,7 +1551,6 @@ Formatting).
 | Config Key | Env Var | Flag | Default | Required | Topic |
 |------------|---------|------|---------|----------|-------|
 | control-plane-url | DCM_CONTROL_PLANE_URL | --control-plane-url | http://localhost:8080 | No | 2 |
-| (legacy) | DCM_API_GATEWAY_URL | --api-gateway-url | — | No | 2 |
 | output-format | DCM_OUTPUT_FORMAT | --output / -o | table | No | 2 |
 | timeout | DCM_TIMEOUT | --timeout | 30 | No | 2 |
 | - | DCM_CONFIG | --config | ~/.dcm/config.yaml | No | 2 |

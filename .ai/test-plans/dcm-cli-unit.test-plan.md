@@ -46,7 +46,7 @@ test classes. Instead:
 - **Requirement:** REQ-CFG-030, REQ-CFG-040
 - **Acceptance Criteria:** AC-CFG-030, AC-CFG-040
 - **Type:** Unit
-- **Given:** A config file has `control-plane-url: http://file:8080` AND `DCM_API_GATEWAY_URL=http://env:8080` is set
+- **Given:** A config file has `control-plane-url: http://file:8080` AND `DCM_CONTROL_PLANE_URL=http://env:8080` is set
 - **When:** Config is loaded without `--control-plane-url` flag
 - **Then:** The loaded config has `ControlPlaneURL = "http://env:8080"`
 
@@ -55,7 +55,7 @@ test classes. Instead:
 - **Requirement:** REQ-CFG-040
 - **Acceptance Criteria:** AC-CFG-040
 - **Type:** Unit
-- **Given:** `DCM_API_GATEWAY_URL=http://env:8080` is set AND config file has `control-plane-url: http://file:8080`
+- **Given:** `DCM_CONTROL_PLANE_URL=http://env:8080` is set AND config file has `control-plane-url: http://file:8080`
 - **When:** Config is loaded with `--control-plane-url http://flag:8080`
 - **Then:** The loaded config has `ControlPlaneURL = "http://flag:8080"`
 
@@ -105,7 +105,6 @@ test classes. Instead:
   | Environment Variable   | Value      | Expected Config Field |
   |------------------------|------------|-----------------------|
   | `DCM_CONTROL_PLANE_URL` | `http://e:8080` | `ControlPlaneURL` |
-  | `DCM_API_GATEWAY_URL`   | `http://legacy:8080` | `ControlPlaneURL` (legacy alias) |
   | `DCM_OUTPUT_FORMAT`    | `json`     | `OutputFormat`        |
   | `DCM_TIMEOUT`          | `60`       | `Timeout`             |
   | `DCM_TLS_CA_CERT`      | `/path/ca.pem` | `TLSCACert`      |
@@ -289,7 +288,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** The root command is created
 - **When:** `dcm --help` is executed
-- **Then:** Flags `--control-plane-url`, deprecated `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` are listed
+- **Then:** Flags `--control-plane-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` are listed
 
 ### TC-U022: Exit code 0 on success
 

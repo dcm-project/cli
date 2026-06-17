@@ -567,7 +567,7 @@ var _ = Describe("Policy Commands", func() {
 		})
 
 		// TC-U083: Connection error displays clear message
-		It("TC-U083: should display a connection error when API Gateway is unreachable", func() {
+		It("TC-U083: should display a connection error when control plane is unreachable", func() {
 			// Use a server that is immediately closed to simulate unreachable
 			closedServer := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
 			closedURL := closedServer.URL

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	policyapi "github.com/dcm-project/policy-manager/api/v1alpha1"
-	policyclient "github.com/dcm-project/policy-manager/pkg/client"
+	policyapi "github.com/dcm-project/control-plane/api/policy/v1alpha1"
+	policyclient "github.com/dcm-project/control-plane/pkg/policy/client"
 
 	"github.com/dcm-project/cli/internal/config"
 	"github.com/dcm-project/cli/internal/output"

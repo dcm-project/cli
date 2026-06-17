@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	sprmapi "github.com/dcm-project/service-provider-manager/api/v1alpha1/resource_manager"
+	sprmapi "github.com/dcm-project/control-plane/api/sp/v1alpha1/resource_manager"
 
 	"github.com/dcm-project/cli/internal/config"
 	"github.com/dcm-project/cli/internal/output"

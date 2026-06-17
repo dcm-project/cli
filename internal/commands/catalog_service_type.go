@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	catalogapi "github.com/dcm-project/catalog-manager/api/v1alpha1"
+	catalogapi "github.com/dcm-project/control-plane/api/catalog/v1alpha1"
 
 	"github.com/dcm-project/cli/internal/config"
 	"github.com/dcm-project/cli/internal/output"

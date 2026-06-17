@@ -3,12 +3,10 @@
 ## 1. Overview
 
 The DCM CLI (`dcm`) is a Go-based command-line tool for interacting with the
-DCM (Data Center Management) control plane. It communicates exclusively through
-the API Gateway (KrakenD on port 9080) to reach the Policy Manager, Catalog
-Manager, and Service Provider Resource Manager backends. The CLI uses generated
-clients from `policy-manager/pkg/client`, `catalog-manager/pkg/client`, and
-`service-provider-manager/pkg/client` (oapi-codegen generated) as Go module
-dependencies.
+DCM (Data Center Management) control plane. It communicates directly with the
+control-plane monolith on port 8080. The CLI uses generated clients from
+`github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client`
+(oapi-codegen generated) as a Go module dependency.
 
 **Version scope (v1alpha1):**
 
@@ -28,20 +26,19 @@ dependencies.
 
 **Out of scope (v1alpha1):**
 
-- Authentication and authorization (no auth in v1alpha1 API Gateway)
+- Authentication and authorization (no auth in v1alpha1 control-plane API)
 - Interactive/wizard-style resource creation
 - Watch/streaming operations
 - Plugin/extension system
 - Offline mode or local caching
 - Bulk operations
 - Resource diff/dry-run
-- Health check command for API Gateway connectivity
+- Health check command for control-plane connectivity
 
 **Reference documents:**
 
 - [DCM CLI Specification](.ai/specs/dcm-cli.spec.md)
-- Policy Manager OpenAPI: `api/v1alpha1/openapi.yaml` in dcm-policy-manager
-- Catalog Manager OpenAPI: `api/v1alpha1/openapi.yaml` in dcm-catalog-manager
+- Control-plane OpenAPI: `api/*/v1alpha1/openapi.yaml` in dcm-project/control-plane
 - [AEP Standards](https://aep.dev/) - API Enhancement Proposals
 - RFC 7807 - Problem Details for HTTP APIs
 - RFC 7396 - JSON Merge Patch
@@ -51,19 +48,15 @@ dependencies.
 ## 2. Architecture
 
 ```
-┌─────────┐              ┌──────────────────┐       ┌──────────────────┐
-│         │              │                  │       │ Policy Manager   │
-│  dcm    │─────────────▶│  API Gateway     │──────▶│ (port 8080)      │
-│  CLI    │ HTTP / HTTPS │  (KrakenD 9080)  │       └──────────────────┘
-│         │              │                  │       ┌──────────────────┐
-└─────────┘              │                  │──────▶│ Catalog Manager  │
-                         │                  │       │ (port 8080)      │
-                         │                  │       └──────────────────┘
-                         │                  │       ┌──────────────────┐
-                         │                  │──────▶│ SP Resource Mgr  │
-                         └──────────────────┘       │ (port 8080)      │
-                                                    └──────────────────┘
+┌─────────┐              ┌──────────────────────────────────────────┐
+│         │              │           control-plane monolith         │
+│  dcm    │─────────────▶│  (port 8080, /api/v1alpha1/*)           │
+│  CLI    │ HTTP / HTTPS │  policy · catalog · sp (in-process)      │
+└─────────┘              └──────────────────────────────────────────┘
 ```
+
+Policy evaluation and placement run in-process; there is no CLI-facing HTTP
+route for `policies:evaluateRequest` or `/resources`.
 
 ```
 dcm-cli/
@@ -127,7 +120,7 @@ Topics 1, 2, and 3 can be delivered in parallel. Topics 4-7 depend on all
 three foundation topics. Topic 8 depends only on Topic 1.
 
 > **Note:** Command tests use `net/http/httptest` to mock generated client HTTP
-> calls. No real API Gateway is needed for unit tests.
+> calls. No live control-plane is needed for unit tests.
 
 ---
 
@@ -150,7 +143,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 | REQ-CLI-020 | The CLI MUST define a root command `dcm` with global flags | MUST | |
 | REQ-CLI-030 | The root command MUST register all subcommand groups: `policy`, `catalog`, `sp`, `version`, `completion` | MUST | |
 | REQ-CLI-040 | The `catalog` command MUST register subcommand groups: `service-type`, `item`, `instance` | MUST | |
-| REQ-CLI-050 | Global flags MUST include `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | MUST | |
+| REQ-CLI-050 | Global flags MUST include `--control-plane-url`, deprecated `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, `--tls-skip-verify` | MUST | |
 | REQ-CLI-060 | The CLI MUST exit with code 0 on success, 1 on runtime errors, 2 on usage errors | MUST | |
 | REQ-CLI-070 | The entry point (`cmd/dcm/main.go`) MUST bootstrap the root command and execute it | MUST | |
 
@@ -161,7 +154,7 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 - **Validates:** REQ-CLI-020, REQ-CLI-050
 - **Given** the CLI is invoked
 - **When** `dcm --help` is run
-- **Then** the global flags `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` MUST be listed
+- **Then** the global flags `--control-plane-url`, deprecated `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` MUST be listed
 
 ##### AC-CLI-030: Subcommand registration
 
@@ -222,9 +215,9 @@ profile/context support.
 |----|-------------|----------|-------|
 | REQ-CFG-010 | The CLI MUST load configuration from the config file at `~/.dcm/config.yaml` by default | MUST | |
 | REQ-CFG-020 | The config file path MUST be overridable via `--config` flag or `DCM_CONFIG` environment variable | MUST | |
-| REQ-CFG-030 | The CLI MUST support environment variables: `DCM_API_GATEWAY_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`, `DCM_TLS_CA_CERT`, `DCM_TLS_CLIENT_CERT`, `DCM_TLS_CLIENT_KEY`, `DCM_TLS_SKIP_VERIFY` | MUST | |
+| REQ-CFG-030 | The CLI MUST support environment variables: `DCM_CONTROL_PLANE_URL`, legacy `DCM_API_GATEWAY_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`, `DCM_TLS_CA_CERT`, `DCM_TLS_CLIENT_CERT`, `DCM_TLS_CLIENT_KEY`, `DCM_TLS_SKIP_VERIFY` | MUST | |
 | REQ-CFG-040 | Configuration precedence MUST be: CLI flags > environment variables > config file > built-in defaults | MUST | |
-| REQ-CFG-050 | Built-in defaults MUST be: `api-gateway-url=http://localhost:9080`, `output-format=table`, `timeout=30`, `tls-ca-cert=""`, `tls-client-cert=""`, `tls-client-key=""`, `tls-skip-verify=false` | MUST | |
+| REQ-CFG-050 | Built-in defaults MUST be: `control-plane-url=http://localhost:8080`, `output-format=table`, `timeout=30`, `tls-ca-cert=""`, `tls-client-cert=""`, `tls-client-key=""`, `tls-skip-verify=false` | MUST | |
 | REQ-CFG-060 | The CLI MUST use Viper for configuration management | MUST | |
 | REQ-CFG-070 | The CLI MUST NOT fail if the config file does not exist; defaults MUST be used | MUST | |
 
@@ -232,7 +225,8 @@ profile/context support.
 
 | Config Key | Env Var | Flag | Default | Description |
 |------------|---------|------|---------|-------------|
-| api-gateway-url | DCM_API_GATEWAY_URL | --api-gateway-url | http://localhost:9080 | API Gateway base URL |
+| control-plane-url | DCM_CONTROL_PLANE_URL | --control-plane-url | http://localhost:8080 | Control plane base URL |
+| api-gateway-url (legacy) | DCM_API_GATEWAY_URL | --api-gateway-url | — | Deprecated alias |
 | output-format | DCM_OUTPUT_FORMAT | --output / -o | table | Output format (table, json, yaml) |
 | timeout | DCM_TIMEOUT | --timeout | 30 | Request timeout in seconds |
 | - | DCM_CONFIG | --config | ~/.dcm/config.yaml | Config file path |
@@ -246,9 +240,9 @@ profile/context support.
 ##### AC-CFG-010: Config file loading
 
 - **Validates:** REQ-CFG-010
-- **Given** a config file exists at `~/.dcm/config.yaml` with `api-gateway-url: http://custom:9080`
+- **Given** a config file exists at `~/.dcm/config.yaml` with `control-plane-url: http://custom:8080`
 - **When** the CLI is invoked without flags or env vars
-- **Then** the API Gateway URL MUST be `http://custom:9080`
+- **Then** the control-plane URL MUST be `http://custom:8080`
 
 ##### AC-CFG-020: Custom config file path
 
@@ -260,25 +254,25 @@ profile/context support.
 ##### AC-CFG-030: Environment variable override
 
 - **Validates:** REQ-CFG-030
-- **Given** `DCM_API_GATEWAY_URL=http://env:9080` is set
-- **And** the config file has `api-gateway-url: http://file:9080`
-- **When** the CLI is invoked without `--api-gateway-url`
-- **Then** the API Gateway URL MUST be `http://env:9080`
+- **Given** `DCM_API_GATEWAY_URL=http://env:8080` is set
+- **And** the config file has `control-plane-url: http://file:8080`
+- **When** the CLI is invoked without `--control-plane-url`
+- **Then** the control-plane URL MUST be `http://env:8080`
 
 ##### AC-CFG-040: CLI flag override
 
 - **Validates:** REQ-CFG-040
-- **Given** `DCM_API_GATEWAY_URL=http://env:9080` is set
-- **And** the config file has `api-gateway-url: http://file:9080`
-- **When** `dcm --api-gateway-url http://flag:9080 policy list` is invoked
-- **Then** the API Gateway URL MUST be `http://flag:9080`
+- **Given** `DCM_API_GATEWAY_URL=http://env:8080` is set
+- **And** the config file has `control-plane-url: http://file:8080`
+- **When** `dcm --control-plane-url http://flag:8080 policy list` is invoked
+- **Then** the control-plane URL MUST be `http://flag:8080`
 
 ##### AC-CFG-050: Built-in defaults
 
 - **Validates:** REQ-CFG-050
 - **Given** no config file exists and no env vars are set
 - **When** the CLI resolves configuration
-- **Then** `api-gateway-url` MUST be `http://localhost:9080`
+- **Then** `control-plane-url` MUST be `http://localhost:8080`
 - **And** `output-format` MUST be `table`
 - **And** `timeout` MUST be `30`
 - **And** `tls-ca-cert` MUST be `""`
@@ -398,7 +392,7 @@ None - independently deliverable.
 
 Implement the `dcm policy` command group with CRUD subcommands: `create`,
 `list`, `get`, `update`, `delete`. Each command uses the generated Policy
-Manager client to communicate with the API Gateway.
+Manager client to communicate with the control plane.
 
 Out of scope: policy validation/dry-run, policy diff, bulk policy operations.
 
@@ -1228,7 +1222,7 @@ Depends on Topic 1 (CLI Framework).
 Implement the `dcm sp provider` command group with read-only subcommands: `list`
 and `get`. Providers are service providers registered with the Service Provider
 Manager. The CLI provides read-only access to these resources via the top-level
-generated SP Manager client (`service-provider-manager/pkg/client`).
+generated SP provider client (`control-plane/pkg/sp/client/provider`).
 
 Out of scope: SP provider create/update/delete (managed via other flows),
 SP provider health check.
@@ -1241,7 +1235,7 @@ SP provider health check.
 | REQ-SPP-020 | `dcm sp provider list` MUST display SP providers in the configured output format | MUST | |
 | REQ-SPP-030 | `dcm sp provider get` MUST accept a `PROVIDER_ID` positional argument and display the SP provider | MUST | |
 | REQ-SPP-040 | Missing `PROVIDER_ID` argument for `get` MUST result in a usage error (exit code 2) | MUST | |
-| REQ-SPP-050 | All SP provider commands MUST use the generated SP Manager client (`service-provider-manager/pkg/client`) | MUST | |
+| REQ-SPP-050 | All SP provider commands MUST use the generated SP provider client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) | MUST | |
 
 #### Table Output Columns
 
@@ -1330,10 +1324,10 @@ Formatting).
 | REQ-XC-ERR-010 | API errors MUST be parsed from RFC 7807 Problem Details format and displayed in a human-readable format | MUST | |
 | REQ-XC-ERR-020 | For table output, API errors MUST display: `Error: <TYPE> - <TITLE>`, `Status: <STATUS>`, `Detail: <DETAIL>` | MUST | |
 | REQ-XC-ERR-030 | For JSON/YAML output, API errors MUST display the full Problem Details object | MUST | |
-| REQ-XC-ERR-040 | Connection errors (cannot reach API Gateway) MUST be displayed with a clear error message and exit code 1 | MUST | |
+| REQ-XC-ERR-040 | Connection errors (cannot reach control plane) MUST be displayed with a clear error message and exit code 1 | MUST | |
 | REQ-XC-ERR-050 | Timeout errors MUST be displayed with a clear error message and exit code 1 | MUST | |
 | REQ-XC-ERR-060 | Configuration errors MUST result in exit code 1 | MUST | |
-| REQ-XC-ERR-070 | If an API error response does not conform to RFC 7807 (e.g., a raw 502 from the API Gateway), the CLI MUST display the HTTP status code and response body as a plain error message and exit with code 1 | MUST | |
+| REQ-XC-ERR-070 | If an API error response does not conform to RFC 7807 (e.g., a raw 502 from the control plane), the CLI MUST display the HTTP status code and response body as a plain error message and exit with code 1 | MUST | |
 
 #### Acceptance Criteria
 
@@ -1359,7 +1353,7 @@ Formatting).
 ##### AC-XC-ERR-030: Connection error
 
 - **Validates:** REQ-XC-ERR-040
-- **Given** the API Gateway is unreachable
+- **Given** the control plane is unreachable
 - **When** any command is invoked
 - **Then** the CLI MUST display a connection error message
 - **And** exit with code 1
@@ -1367,7 +1361,7 @@ Formatting).
 ##### AC-XC-ERR-040: Non-RFC-7807 error response
 
 - **Validates:** REQ-XC-ERR-070
-- **Given** the API Gateway returns a non-RFC-7807 response (e.g., a raw 502 Bad Gateway with HTML or plain text body)
+- **Given** the control plane returns a non-RFC-7807 response (e.g., a raw 502 Bad Gateway with HTML or plain text body)
 - **When** the CLI processes the error
 - **Then** the CLI MUST display the HTTP status code and response body as a plain error message
 - **And** exit with code 1
@@ -1420,25 +1414,25 @@ Formatting).
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-XC-CLI-010 | The CLI MUST use the generated Policy Manager client (`github.com/dcm-project/policy-manager/pkg/client`) for all policy operations | MUST | |
-| REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client (`github.com/dcm-project/catalog-manager/pkg/client`) for all catalog operations | MUST | |
-| REQ-XC-CLI-025 | The CLI MUST use the generated SP Resource Manager client (`github.com/dcm-project/service-provider-manager/pkg/client/resource_manager`) for all SP resource operations | MUST | |
-| REQ-XC-CLI-026 | The CLI MUST use the generated SP Manager client (`github.com/dcm-project/service-provider-manager/pkg/client`) for all SP provider operations | MUST | |
-| REQ-XC-CLI-030 | All clients MUST be instantiated with the API Gateway URL appended with `/api/v1alpha1` | MUST | |
+| REQ-XC-CLI-010 | The CLI MUST use the generated policy client (`github.com/dcm-project/control-plane/pkg/policy/client`) for all policy operations | MUST | |
+| REQ-XC-CLI-020 | The CLI MUST use the generated catalog client (`github.com/dcm-project/control-plane/pkg/catalog/client`) for all catalog operations | MUST | |
+| REQ-XC-CLI-025 | The CLI MUST use the generated SP resource client (`github.com/dcm-project/control-plane/pkg/sp/client/resource_manager`) for all SP resource operations | MUST | |
+| REQ-XC-CLI-026 | The CLI MUST use the generated SP provider client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) for all SP provider operations | MUST | |
+| REQ-XC-CLI-030 | All clients MUST be instantiated with the control-plane URL appended with `/api/v1alpha1` | MUST | |
 | REQ-XC-CLI-040 | All clients MUST respect the configured request timeout. The timeout applies to the HTTP request deadline (context timeout) only; file I/O and output formatting are not subject to the timeout. | MUST | |
-| REQ-XC-CLI-050 | All clients MUST use a custom HTTP client with TLS transport when the API Gateway URL uses `https://` | MUST | |
+| REQ-XC-CLI-050 | All clients MUST use a custom HTTP client with TLS transport when the control-plane URL uses `https://` | MUST | |
 
 #### Acceptance Criteria
 
 ##### AC-XC-CLI-010: Client instantiation
 
 - **Validates:** REQ-XC-CLI-030
-- **Given** the API Gateway URL is `http://localhost:9080`
+- **Given** the control-plane URL is `http://localhost:8080`
 - **When** the generated clients are created
-- **Then** the Policy Manager client MUST be created with `http://localhost:9080/api/v1alpha1`
-- **And** the Catalog Manager client MUST be created with `http://localhost:9080/api/v1alpha1`
-- **And** the SP Resource Manager client MUST be created with `http://localhost:9080/api/v1alpha1`
-- **And** the SP Manager client MUST be created with `http://localhost:9080/api/v1alpha1`
+- **Then** the policy client MUST be created with `http://localhost:8080/api/v1alpha1`
+- **And** the catalog client MUST be created with `http://localhost:8080/api/v1alpha1`
+- **And** the SP resource client MUST be created with `http://localhost:8080/api/v1alpha1`
+- **And** the SP provider client MUST be created with `http://localhost:8080/api/v1alpha1`
 
 ##### AC-XC-CLI-020: Request timeout
 
@@ -1451,7 +1445,7 @@ Formatting).
 ##### AC-XC-CLI-030: TLS transport for HTTPS
 
 - **Validates:** REQ-XC-CLI-050
-- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **Given** the control-plane URL is `https://gateway.example.com:9443`
 - **When** the generated clients are created
 - **Then** a custom HTTP client with TLS transport MUST be passed via `WithHTTPClient`
 
@@ -1487,8 +1481,8 @@ Formatting).
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-XC-TLS-010 | When the API Gateway URL uses `https://`, the CLI MUST establish a TLS connection | MUST | |
-| REQ-XC-TLS-020 | When the API Gateway URL uses `http://`, the CLI MUST NOT use TLS and MUST silently ignore TLS-related flags/config | MUST | |
+| REQ-XC-TLS-010 | When the control-plane URL uses `https://`, the CLI MUST establish a TLS connection | MUST | |
+| REQ-XC-TLS-020 | When the control-plane URL uses `http://`, the CLI MUST NOT use TLS and MUST silently ignore TLS-related flags/config | MUST | |
 | REQ-XC-TLS-030 | The CLI MUST support a `--tls-ca-cert` flag to specify a custom CA certificate for server verification | MUST | |
 | REQ-XC-TLS-040 | The CLI MUST support `--tls-client-cert` and `--tls-client-key` flags for mutual TLS (mTLS) | MUST | |
 | REQ-XC-TLS-050 | The CLI MUST support a `--tls-skip-verify` flag to skip server certificate verification | MUST | |
@@ -1501,14 +1495,14 @@ Formatting).
 ##### AC-XC-TLS-010: HTTPS triggers TLS
 
 - **Validates:** REQ-XC-TLS-010
-- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **Given** the control-plane URL is `https://gateway.example.com:9443`
 - **When** any command makes a request
 - **Then** the HTTP client MUST use a TLS transport
 
 ##### AC-XC-TLS-020: HTTP skips TLS
 
 - **Validates:** REQ-XC-TLS-020
-- **Given** the API Gateway URL is `http://localhost:9080`
+- **Given** the control-plane URL is `http://localhost:8080`
 - **And** `--tls-skip-verify` or other TLS flags are set
 - **When** any command makes a request
 - **Then** TLS MUST NOT be used and TLS flags MUST be silently ignored
@@ -1516,7 +1510,7 @@ Formatting).
 ##### AC-XC-TLS-030: Custom CA certificate
 
 - **Validates:** REQ-XC-TLS-030, REQ-XC-TLS-080
-- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **Given** the control-plane URL is `https://gateway.example.com:9443`
 - **And** `--tls-ca-cert /path/to/ca.pem` is provided
 - **When** the TLS connection is established
 - **Then** the custom CA certificate MUST be used to verify the server
@@ -1524,7 +1518,7 @@ Formatting).
 ##### AC-XC-TLS-040: Mutual TLS with client certificate
 
 - **Validates:** REQ-XC-TLS-040
-- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **Given** the control-plane URL is `https://gateway.example.com:9443`
 - **And** `--tls-client-cert /path/to/cert.pem` and `--tls-client-key /path/to/key.pem` are provided
 - **When** the TLS connection is established
 - **Then** the client certificate and key MUST be used for mutual TLS
@@ -1532,7 +1526,7 @@ Formatting).
 ##### AC-XC-TLS-050: Skip TLS verification
 
 - **Validates:** REQ-XC-TLS-050
-- **Given** the API Gateway URL is `https://gateway.example.com:9443`
+- **Given** the control-plane URL is `https://gateway.example.com:9443`
 - **And** `--tls-skip-verify` is set
 - **When** the TLS connection is established
 - **Then** server certificate verification MUST be skipped
@@ -1557,7 +1551,8 @@ Formatting).
 
 | Config Key | Env Var | Flag | Default | Required | Topic |
 |------------|---------|------|---------|----------|-------|
-| api-gateway-url | DCM_API_GATEWAY_URL | --api-gateway-url | http://localhost:9080 | No | 2 |
+| control-plane-url | DCM_CONTROL_PLANE_URL | --control-plane-url | http://localhost:8080 | No | 2 |
+| (legacy) | DCM_API_GATEWAY_URL | --api-gateway-url | — | No | 2 |
 | output-format | DCM_OUTPUT_FORMAT | --output / -o | table | No | 2 |
 | timeout | DCM_TIMEOUT | --timeout | 30 | No | 2 |
 | - | DCM_CONFIG | --config | ~/.dcm/config.yaml | No | 2 |
@@ -1572,8 +1567,9 @@ Formatting).
 
 ### DD-010: Generated clients over hand-written HTTP
 
-**Decision:** Use oapi-codegen generated clients from `policy-manager/pkg/client`
-and `catalog-manager/pkg/client` instead of hand-writing HTTP client code.
+**Decision:** Use oapi-codegen generated clients from
+`github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client` instead of
+hand-writing HTTP client code.
 
 **Rationale:** Generated clients guarantee API contract conformance, reduce
 boilerplate, and evolve with the OpenAPI specs. The CLI is a thin wrapper around
@@ -1594,14 +1590,15 @@ parsing, and help generation depend on Cobra.
 
 **Related requirements:** REQ-CFG-060
 
-### DD-030: Single API Gateway endpoint
+### DD-030: Single control-plane endpoint
 
-**Decision:** All CLI commands communicate through a single API Gateway URL.
+**Decision:** All CLI commands communicate through a single control-plane URL.
 The CLI does not connect to backend services directly.
 
-**Rationale:** Simplifies configuration (single URL), enables the gateway to
-handle routing, load balancing, and future cross-cutting concerns (auth, rate
-limiting). Matches the system architecture.
+**Rationale:** Simplifies configuration (single URL). The control-plane monolith
+serves all v1alpha1 routes on one process (`:8080`, prefix `/api/v1alpha1`).
+Policy evaluation and placement run in-process and are not exposed as separate
+HTTP APIs to the CLI.
 
 **Related requirements:** REQ-XC-CLI-030
 
@@ -1642,7 +1639,7 @@ programmatic use.
 
 ### DD-080: Protocol-driven TLS
 
-**Decision:** TLS is enabled automatically when the API Gateway URL uses `https://`
+**Decision:** TLS is enabled automatically when the control-plane URL uses `https://`
 and disabled when it uses `http://`. TLS flags are silently ignored for `http://` URLs.
 
 **Rationale:** Follows the principle of least surprise — the URL scheme already

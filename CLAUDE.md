@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DCM CLI (`dcm`) is a Go-based command-line tool for interacting with the DCM (Data Center Management) control plane. It communicates through the API Gateway (KrakenD on port 9080) to reach the PolicyManager and CatalogManager backends. The CLI uses generated clients from `policy-manager/pkg/client` and `catalog-manager/pkg/client` (oapi-codegen generated) as Go module dependencies.
+DCM CLI (`dcm`) is a Go-based command-line tool for interacting with the DCM (Data Center Management) control plane. It communicates directly with the control-plane monolith on port 8080. The CLI uses generated clients from `github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client` (oapi-codegen generated) as a Go module dependency.
 
 ## Build and Development Commands
 
@@ -76,7 +76,7 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 1. **Cobra commands**: Each resource group (policy, catalog service-type, catalog item, catalog instance) has its own file with subcommands. Policy supports create/list/get/update/delete. Catalog item and catalog instance do not support update.
 
-2. **Generated clients**: Import `github.com/dcm-project/policy-manager/pkg/client` and `github.com/dcm-project/catalog-manager/pkg/client`. No hand-written HTTP client code.
+2. **Generated clients**: Import `github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client`. No hand-written HTTP client code.
 
 3. **Configuration precedence**: CLI flags > environment variables (`DCM_CONTROL_PLANE_URL`, legacy `DCM_API_GATEWAY_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`) > config file (`~/.dcm/config.yaml`) > built-in defaults.
 

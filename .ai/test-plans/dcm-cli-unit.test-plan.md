@@ -9,8 +9,7 @@
 - **Created:** 2026-03-09
 
 Unit tests verify individual components in isolation. All external dependencies
-(API Gateway, Policy Manager, Catalog Manager) are replaced with
-`net/http/httptest` servers. Tests use direct command execution via Cobra's
+(control-plane HTTP API) are replaced with `net/http/httptest` servers. Tests use direct command execution via Cobra's
 `Execute()` with captured stdout/stderr, and direct function calls for pure
 logic (config loading, output formatting, file parsing).
 
@@ -38,27 +37,27 @@ test classes. Instead:
 - **Requirement:** REQ-CFG-010
 - **Acceptance Criteria:** AC-CFG-010
 - **Type:** Unit
-- **Given:** A config file exists at a temporary path with `api-gateway-url: http://custom:9080`
+- **Given:** A config file exists at a temporary path with `control-plane-url: http://custom:8080`
 - **When:** Config is loaded with `--config` pointing to that file
-- **Then:** The loaded config has `APIGatewayURL = "http://custom:9080"`
+- **Then:** The loaded config has `ControlPlaneURL = "http://custom:8080"`
 
 ### TC-U002: Environment variable overrides config file
 
 - **Requirement:** REQ-CFG-030, REQ-CFG-040
 - **Acceptance Criteria:** AC-CFG-030, AC-CFG-040
 - **Type:** Unit
-- **Given:** A config file has `api-gateway-url: http://file:9080` AND `DCM_API_GATEWAY_URL=http://env:9080` is set
-- **When:** Config is loaded without `--api-gateway-url` flag
-- **Then:** The loaded config has `APIGatewayURL = "http://env:9080"`
+- **Given:** A config file has `control-plane-url: http://file:8080` AND `DCM_API_GATEWAY_URL=http://env:8080` is set
+- **When:** Config is loaded without `--control-plane-url` flag
+- **Then:** The loaded config has `ControlPlaneURL = "http://env:8080"`
 
 ### TC-U003: CLI flag overrides environment variable and config file
 
 - **Requirement:** REQ-CFG-040
 - **Acceptance Criteria:** AC-CFG-040
 - **Type:** Unit
-- **Given:** `DCM_API_GATEWAY_URL=http://env:9080` is set AND config file has `api-gateway-url: http://file:9080`
-- **When:** Config is loaded with `--api-gateway-url http://flag:9080`
-- **Then:** The loaded config has `APIGatewayURL = "http://flag:9080"`
+- **Given:** `DCM_API_GATEWAY_URL=http://env:8080` is set AND config file has `control-plane-url: http://file:8080`
+- **When:** Config is loaded with `--control-plane-url http://flag:8080`
+- **Then:** The loaded config has `ControlPlaneURL = "http://flag:8080"`
 
 ### TC-U004: Default values applied when no config specified
 
@@ -67,7 +66,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** No config file exists AND no environment variables are set AND no flags are provided
 - **When:** Config is loaded
-- **Then:** `APIGatewayURL` defaults to `"http://localhost:9080"` AND `OutputFormat` defaults to `"table"` AND `Timeout` defaults to `30` AND `TLSCACert` defaults to `""` AND `TLSClientCert` defaults to `""` AND `TLSClientKey` defaults to `""` AND `TLSSkipVerify` defaults to `false`
+- **Then:** `ControlPlaneURL` defaults to `"http://localhost:8080"` AND `OutputFormat` defaults to `"table"` AND `Timeout` defaults to `30` AND `TLSCACert` defaults to `""` AND `TLSClientCert` defaults to `""` AND `TLSClientKey` defaults to `""` AND `TLSSkipVerify` defaults to `false`
 
 ### TC-U005: Missing config file does not cause failure
 
@@ -105,7 +104,8 @@ test classes. Instead:
 
   | Environment Variable   | Value      | Expected Config Field |
   |------------------------|------------|-----------------------|
-  | `DCM_API_GATEWAY_URL`  | `http://e:9080` | `APIGatewayURL`  |
+  | `DCM_CONTROL_PLANE_URL` | `http://e:8080` | `ControlPlaneURL` |
+  | `DCM_API_GATEWAY_URL`   | `http://legacy:8080` | `ControlPlaneURL` (legacy alias) |
   | `DCM_OUTPUT_FORMAT`    | `json`     | `OutputFormat`        |
   | `DCM_TIMEOUT`          | `60`       | `Timeout`             |
   | `DCM_TLS_CA_CERT`      | `/path/ca.pem` | `TLSCACert`      |
@@ -289,7 +289,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** The root command is created
 - **When:** `dcm --help` is executed
-- **Then:** Flags `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` are listed
+- **Then:** Flags `--control-plane-url`, deprecated `--api-gateway-url`, `--output`/`-o`, `--timeout`, `--config`, `--tls-ca-cert`, `--tls-client-cert`, `--tls-client-key`, and `--tls-skip-verify` are listed
 
 ### TC-U022: Exit code 0 on success
 
@@ -1198,7 +1198,7 @@ test classes. Instead:
 - **Requirement:** REQ-XC-TLS-010
 - **Acceptance Criteria:** AC-XC-TLS-010
 - **Type:** Unit
-- **Given:** The API Gateway URL is `https://localhost:<port>` pointing to a TLS-enabled httptest server
+- **Given:** The control-plane URL is `https://localhost:<port>` pointing to a TLS-enabled httptest server
 - **When:** `dcm policy list --tls-skip-verify` is executed
 - **Then:** The request MUST succeed over TLS AND the mock server receives the request
 
@@ -1207,7 +1207,7 @@ test classes. Instead:
 - **Requirement:** REQ-XC-TLS-020
 - **Acceptance Criteria:** AC-XC-TLS-020
 - **Type:** Unit
-- **Given:** The API Gateway URL is `http://localhost:<port>` AND `--tls-skip-verify` is set AND `--tls-ca-cert /some/path` is set
+- **Given:** The control-plane URL is `http://localhost:<port>` AND `--tls-skip-verify` is set AND `--tls-ca-cert /some/path` is set
 - **When:** `dcm policy list` is executed against a non-TLS httptest server
 - **Then:** The request MUST succeed without TLS AND TLS flags MUST be silently ignored
 
@@ -1217,7 +1217,7 @@ test classes. Instead:
 - **Acceptance Criteria:** AC-XC-TLS-030
 - **Type:** Unit
 - **Given:** A TLS-enabled httptest server with a self-signed certificate AND the CA cert is written to a temp file
-- **When:** `dcm policy list --api-gateway-url https://... --tls-ca-cert /tmp/ca.pem` is executed
+- **When:** `dcm policy list --control-plane-url https://... --tls-ca-cert /tmp/ca.pem` is executed
 - **Then:** The TLS handshake MUST succeed using the provided CA certificate
 
 ### TC-U091: Mutual TLS with client certificate and key
@@ -1235,7 +1235,7 @@ test classes. Instead:
 - **Acceptance Criteria:** AC-XC-TLS-050
 - **Type:** Unit
 - **Given:** A TLS-enabled httptest server with a self-signed certificate AND no CA cert is provided
-- **When:** `dcm policy list --api-gateway-url https://... --tls-skip-verify` is executed
+- **When:** `dcm policy list --control-plane-url https://... --tls-skip-verify` is executed
 - **Then:** The request MUST succeed despite the untrusted certificate
 
 ### TC-U093: Incomplete mTLS config — cert without key
@@ -1261,7 +1261,7 @@ test classes. Instead:
 - **Requirement:** REQ-XC-TLS-070
 - **Acceptance Criteria:** AC-XC-TLS-070
 - **Type:** Unit
-- **Given:** `--tls-ca-cert /nonexistent/ca.pem` is provided AND the API Gateway URL uses `https://`
+- **Given:** `--tls-ca-cert /nonexistent/ca.pem` is provided AND the control-plane URL uses `https://`
 - **When:** The CLI attempts to load the CA certificate
 - **Then:** The CLI MUST exit with code 1 AND display a clear error message
 
@@ -1270,7 +1270,7 @@ test classes. Instead:
 - **Requirement:** REQ-XC-TLS-070
 - **Acceptance Criteria:** AC-XC-TLS-070
 - **Type:** Unit
-- **Given:** `--tls-client-cert /nonexistent/cert.pem` and `--tls-client-key /tmp/valid-key.pem` are provided AND the API Gateway URL uses `https://`
+- **Given:** `--tls-client-cert /nonexistent/cert.pem` and `--tls-client-key /tmp/valid-key.pem` are provided AND the control-plane URL uses `https://`
 - **When:** The CLI attempts to load the client certificate
 - **Then:** The CLI MUST exit with code 1 AND display a clear error message
 
@@ -1279,7 +1279,7 @@ test classes. Instead:
 - **Requirement:** REQ-XC-TLS-080
 - **Acceptance Criteria:** AC-XC-TLS-030
 - **Type:** Unit
-- **Given:** The API Gateway URL uses `https://` AND no `--tls-ca-cert` is provided
+- **Given:** The control-plane URL uses `https://` AND no `--tls-ca-cert` is provided
 - **When:** The TLS transport is configured
 - **Then:** The system default CA bundle MUST be used (RootCAs is nil in tls.Config)
 
@@ -1348,7 +1348,7 @@ test classes. Instead:
 - **Requirement:** REQ-XC-ERR-040
 - **Acceptance Criteria:** AC-XC-ERR-030
 - **Type:** Unit
-- **Given:** The API Gateway URL points to a closed/non-existent server
+- **Given:** The control-plane URL points to a closed/non-existent server
 - **When:** `dcm policy list` is executed
 - **Then:** The CLI displays a connection error message AND exits with code 1
 
@@ -1437,9 +1437,9 @@ dedicated test class or `Describe` block.
 - **Requirement:** REQ-XC-CLI-010, REQ-XC-CLI-030
 - **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
-- **Given:** The API Gateway URL is `http://localhost:9080`
+- **Given:** The control-plane URL is `http://localhost:8080`
 - **When:** The Policy Manager client is created
-- **Then:** The client base URL is `http://localhost:9080/api/v1alpha1`
+- **Then:** The client base URL is `http://localhost:8080/api/v1alpha1`
 - **Referenced by:** TC-U026 (create policy verifies request goes to correct URL path)
 
 #### TC-U065: Catalog Manager client instantiated with correct URL
@@ -1447,9 +1447,9 @@ dedicated test class or `Describe` block.
 - **Requirement:** REQ-XC-CLI-020, REQ-XC-CLI-030
 - **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
-- **Given:** The API Gateway URL is `http://localhost:9080`
+- **Given:** The control-plane URL is `http://localhost:8080`
 - **When:** The Catalog Manager client is created
-- **Then:** The client base URL is `http://localhost:9080/api/v1alpha1`
+- **Then:** The client base URL is `http://localhost:8080/api/v1alpha1`
 - **Referenced by:** TC-U042 (list service types verifies request goes to correct URL path)
 
 #### TC-U066: Policy Manager generated client used for policy operations
@@ -1477,9 +1477,9 @@ dedicated test class or `Describe` block.
 - **Requirement:** REQ-XC-CLI-025, REQ-XC-CLI-030
 - **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
-- **Given:** The API Gateway URL is `http://localhost:9080`
+- **Given:** The control-plane URL is `http://localhost:8080`
 - **When:** The SP Resource Manager client is created
-- **Then:** The client base URL is `http://localhost:9080/api/v1alpha1`
+- **Then:** The client base URL is `http://localhost:8080/api/v1alpha1`
 - **Referenced by:** TC-U121 (list SP resources verifies request goes to correct URL path)
 
 #### TC-U131: SP Resource Manager generated client used for SP resource operations
@@ -1497,9 +1497,9 @@ dedicated test class or `Describe` block.
 - **Requirement:** REQ-XC-CLI-026, REQ-XC-CLI-030
 - **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
-- **Given:** The API Gateway URL is `http://localhost:9080`
+- **Given:** The control-plane URL is `http://localhost:8080`
 - **When:** The SP Manager client is created
-- **Then:** The client base URL is `http://localhost:9080/api/v1alpha1`
+- **Then:** The client base URL is `http://localhost:8080/api/v1alpha1`
 - **Referenced by:** TC-U139 (list SP providers verifies request goes to correct URL path)
 
 #### TC-U149: SP Manager generated client used for SP provider operations

@@ -75,7 +75,7 @@ internal/
 | `internal/commands` | Cobra command definitions, flag binding, client invocation |
 | `internal/version` | Build-time version info injected via ldflags |
 
-The CLI uses **generated clients** from `github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client` (oapi-codegen generated) as Go module dependencies. No hand-written HTTP client is needed.
+The CLI uses **generated clients** from the [control-plane](https://github.com/dcm-project/control-plane/tree/main/pkg) repo ([policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client), [catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client), [sp/client](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client)) (oapi-codegen generated) as Go module dependencies. No hand-written HTTP client is needed.
 
 ---
 
@@ -698,10 +698,10 @@ func Get() Info
 
 The CLI imports generated client packages from the control-plane monorepo:
 
-- `github.com/dcm-project/control-plane/pkg/policy/client` - Policy client
-- `github.com/dcm-project/control-plane/pkg/catalog/client` - Catalog client
-- `github.com/dcm-project/control-plane/pkg/sp/client/resource_manager` - SP Resource Manager client
-- `github.com/dcm-project/control-plane/pkg/sp/client/provider` - SP Provider client
+- [pkg/policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client) — Policy Manager client
+- [pkg/catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client) — Catalog Manager client
+- [pkg/sp/client/resource_manager](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/resource_manager) — SP Resource Manager client
+- [pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider) — SP Manager client
 
 These are oapi-codegen generated clients providing typed API access. Key interfaces:
 

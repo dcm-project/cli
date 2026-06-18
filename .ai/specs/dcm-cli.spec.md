@@ -5,7 +5,10 @@
 The DCM CLI (`dcm`) is a Go-based command-line tool for interacting with the
 DCM (Data Center Management) control plane. It communicates directly with the
 control-plane monolith on port 8080. The CLI uses generated clients from
-`github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client`
+[control-plane/pkg](https://github.com/dcm-project/control-plane/tree/main/pkg)
+([policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client),
+[catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client),
+[sp/client](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client))
 (oapi-codegen generated) as a Go module dependency.
 
 **Version scope (v1alpha1):**
@@ -1221,7 +1224,7 @@ Depends on Topic 1 (CLI Framework).
 Implement the `dcm sp provider` command group with read-only subcommands: `list`
 and `get`. Providers are service providers registered with the Service Provider
 Manager. The CLI provides read-only access to these resources via the top-level
-generated SP Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`).
+generated SP Manager client ([pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider)).
 
 Out of scope: SP provider create/update/delete (managed via other flows),
 SP provider health check.
@@ -1234,7 +1237,7 @@ SP provider health check.
 | REQ-SPP-020 | `dcm sp provider list` MUST display SP providers in the configured output format | MUST | |
 | REQ-SPP-030 | `dcm sp provider get` MUST accept a `PROVIDER_ID` positional argument and display the SP provider | MUST | |
 | REQ-SPP-040 | Missing `PROVIDER_ID` argument for `get` MUST result in a usage error (exit code 2) | MUST | |
-| REQ-SPP-050 | All SP provider commands MUST use the generated SP Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) | MUST | |
+| REQ-SPP-050 | All SP provider commands MUST use the generated SP Manager client ([pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider)) | MUST | |
 
 #### Table Output Columns
 
@@ -1413,10 +1416,10 @@ Formatting).
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-XC-CLI-010 | The CLI MUST use the generated Policy Manager client (`github.com/dcm-project/control-plane/pkg/policy/client`) for all policy operations | MUST | |
-| REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client (`github.com/dcm-project/control-plane/pkg/catalog/client`) for all catalog operations | MUST | |
-| REQ-XC-CLI-025 | The CLI MUST use the generated SP Resource Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/resource_manager`) for all SP resource operations | MUST | |
-| REQ-XC-CLI-026 | The CLI MUST use the generated SP Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) for all SP provider operations | MUST | |
+| REQ-XC-CLI-010 | The CLI MUST use the generated Policy Manager client ([pkg/policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client)) for all policy operations | MUST | |
+| REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client ([pkg/catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client)) for all catalog operations | MUST | |
+| REQ-XC-CLI-025 | The CLI MUST use the generated SP Resource Manager client ([pkg/sp/client/resource_manager](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/resource_manager)) for all SP resource operations | MUST | |
+| REQ-XC-CLI-026 | The CLI MUST use the generated SP Manager client ([pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider)) for all SP provider operations | MUST | |
 | REQ-XC-CLI-030 | All clients MUST be instantiated with the control-plane URL appended with `/api/v1alpha1` | MUST | |
 | REQ-XC-CLI-040 | All clients MUST respect the configured request timeout. The timeout applies to the HTTP request deadline (context timeout) only; file I/O and output formatting are not subject to the timeout. | MUST | |
 | REQ-XC-CLI-050 | All clients MUST use a custom HTTP client with TLS transport when the control-plane URL uses `https://` | MUST | |
@@ -1566,8 +1569,8 @@ Formatting).
 ### DD-010: Generated clients over hand-written HTTP
 
 **Decision:** Use oapi-codegen generated clients from
-`github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client` instead of
-hand-writing HTTP client code.
+[control-plane/pkg](https://github.com/dcm-project/control-plane/tree/main/pkg)
+instead of hand-writing HTTP client code.
 
 **Rationale:** Generated clients guarantee API contract conformance, reduce
 boilerplate, and evolve with the OpenAPI specs. The CLI is a thin wrapper around

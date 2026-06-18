@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DCM CLI (`dcm`) is a Go-based command-line tool for interacting with the DCM (Data Center Management) control plane. It communicates directly with the control-plane monolith on port 8080. The CLI uses generated clients from `github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client` (oapi-codegen generated) as a Go module dependency.
+DCM CLI (`dcm`) is a Go-based command-line tool for interacting with the DCM (Data Center Management) control plane. It communicates directly with the control-plane monolith on port 8080. The CLI uses oapi-codegen generated clients from the [control-plane](https://github.com/dcm-project/control-plane/tree/main/pkg) repo as a Go module dependency.
+
+Generated client packages:
+
+- [pkg/policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client) — Policy Manager
+- [pkg/catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client) — Catalog Manager
+- [pkg/sp/client/resource_manager](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/resource_manager) — SP Resource Manager
+- [pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider) — SP Manager
 
 ## Build and Development Commands
 
@@ -54,10 +61,14 @@ make test-e2e
 
 - **internal/commands/**: Cobra command definitions
   - `root.go`: Root command with global flags
+  - `helpers.go`: Client constructors, HTTP/TLS helpers, input file parsing
   - `policy.go`: Policy CRUD commands
   - `catalog_service_type.go`: Service type list/get commands
   - `catalog_item.go`: Catalog item create/list/get/delete commands
-  - `catalog_instance.go`: Catalog instance create/list/get/delete commands
+  - `catalog_instance.go`: Catalog instance create/list/get/delete/rehydrate commands
+  - `sp_resource.go`: SP resource list/get commands
+  - `sp_provider.go`: SP provider list/get commands
+  - `completion.go`: Shell completion
   - `version.go`: Version display command
 
 - **internal/version/**: Build-time version info injected via ldflags
@@ -74,9 +85,9 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 ## Key Conventions
 
-1. **Cobra commands**: Each resource group (policy, catalog service-type, catalog item, catalog instance) has its own file with subcommands. Policy supports create/list/get/update/delete. Catalog item and catalog instance do not support update.
+1. **Cobra commands**: Each resource group (policy, catalog service-type, catalog item, catalog instance, sp resource, sp provider) has its own file with subcommands. Policy supports create/list/get/update/delete. Catalog item and catalog instance do not support update. SP commands are read-only (list/get).
 
-2. **Generated clients**: Import `github.com/dcm-project/control-plane/pkg/{policy,catalog,sp}/client`. No hand-written HTTP client code.
+2. **Generated clients**: Import from `github.com/dcm-project/control-plane/pkg/...` (see links in Project Overview). Client constructors live in `helpers.go`. No hand-written HTTP client code.
 
 3. **Configuration precedence**: CLI flags > environment variables (`DCM_CONTROL_PLANE_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`) > config file (`~/.dcm/config.yaml`) > built-in defaults.
 

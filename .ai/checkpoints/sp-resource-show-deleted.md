@@ -39,9 +39,9 @@ from the response.
 
 | File | Change | Purpose |
 |------|--------|---------|
-| `go.mod` / `go.sum` | Modified | Bumped control-plane dependency for `ShowDeleted` on `ListInstancesParams` and `GetInstanceParams` |
-| `internal/commands/helpers.go` | Modified | SP provider client import: `control-plane/pkg/sp/client/provider` |
-| `internal/commands/sp_provider.go` | Modified | SP provider API types: `control-plane/api/sp/v1alpha1/provider` |
+| `go.mod` / `go.sum` | Modified | Updated `service-provider-manager` dependency from `20260324` to `20260402` for `ShowDeleted` params and `GetInstanceParams` type |
+| `internal/commands/helpers.go` | Modified | Updated `spmclient` import path from `pkg/client` to `pkg/client/provider` (upstream package restructuring) |
+| `internal/commands/sp_provider.go` | Modified | Updated `spmapi` import path from `api/v1alpha1` to `api/v1alpha1/provider` (upstream package restructuring) |
 | `internal/commands/sp_resource.go` | Modified | Added `spResourceWithDeletedTableDef`, `--show-deleted` flag on list and get, conditional table def selection, `ShowDeleted` param passing, updated `GetInstance` call to include `GetInstanceParams` |
 | `internal/commands/sp_resource_test.go` | Modified | Added `sampleDeletedSPResourceResponse()` helper and 4 new test specs |
 | `.ai/specs/dcm-cli.spec.md` | Modified | Added REQ-SPR-035/060/070, AC-SPR-035/036/045/046, updated table output section |
@@ -52,9 +52,9 @@ from the response.
 
 ## Key Design Decisions
 
-1. **Control-plane API update** — `ShowDeleted` on `ListInstancesParams`, the `GetInstanceParams` type (with `ShowDeleted`), and the updated `GetInstance` signature come from the control-plane SP resource manager OpenAPI. The CLI pins `github.com/dcm-project/control-plane` accordingly.
+1. **Dependency update required** — The `service-provider-manager` module was updated from `20260324` to `20260402` because the newer version introduces `ShowDeleted` on `ListInstancesParams`, the new `GetInstanceParams` type (with `ShowDeleted`), and changes the `GetInstance` client method signature to accept `*GetInstanceParams`.
 
-2. **SP client package layout** — Provider and resource manager clients live in separate control-plane packages: `pkg/sp/client/provider` and `pkg/sp/client/resource_manager`, with matching API type paths under `api/sp/v1alpha1/`.
+2. **Upstream package restructuring** — The `20260402` version moved provider types and client from `api/v1alpha1` / `pkg/client` to `api/v1alpha1/provider` / `pkg/client/provider` subpackages. Import paths in `helpers.go` and `sp_provider.go` were updated accordingly.
 
 3. **Conditional table definition** — Rather than always showing the `DELETION STATUS` column (which would be empty for most use cases), two table definitions are used: `spResourceTableDef` (default 4 columns) and `spResourceWithDeletedTableDef` (5 columns including `DELETION STATUS`). The flag value selects which definition is passed to the formatter.
 

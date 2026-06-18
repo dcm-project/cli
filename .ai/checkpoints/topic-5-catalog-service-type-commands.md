@@ -10,7 +10,7 @@
 
 ## Scope
 
-Topic 5 implements the `dcm catalog service-type` command group with read-only subcommands (`list` and `get`) per spec section 4.5. Service types are part of the catalog API in control-plane and are not user-creatable via the CLI. All commands use the generated catalog client from the control-plane monorepo.
+Topic 5 implements the `dcm catalog service-type` command group with read-only subcommands (`list` and `get`) per spec section 4.5. Service types are managed by the Catalog Manager and are not user-creatable via the CLI. All commands use the generated Catalog Manager client.
 
 ### Requirements Addressed
 
@@ -20,7 +20,7 @@ Topic 5 implements the `dcm catalog service-type` command group with read-only s
 | REQ-CST-020 | Display service types in configured output format | Done |
 | REQ-CST-030 | `dcm catalog service-type get SERVICE_TYPE_ID` | Done |
 | REQ-CST-040 | Missing `SERVICE_TYPE_ID` → usage error (exit code 2) | Done |
-| REQ-CST-050 | All commands use generated catalog client from control-plane | Done |
+| REQ-CST-050 | All commands use generated Catalog Manager client | Done |
 
 ### Tests Implemented (9 specs)
 
@@ -42,9 +42,9 @@ Topic 5 implements the `dcm catalog service-type` command group with read-only s
 
 | File | Change | Purpose |
 |------|--------|---------|
-| `go.mod` / `go.sum` | Modified | Added `github.com/dcm-project/control-plane` dependency (catalog client) |
+| `go.mod` / `go.sum` | Modified | Added `github.com/dcm-project/catalog-manager` dependency |
 | `internal/commands/helpers.go` | Modified | Added `newCatalogClient` for reuse by Topics 5-7 |
-| `internal/commands/catalog_service_type.go` | Modified | Full implementation of `list` and `get` commands with generated catalog client |
+| `internal/commands/catalog_service_type.go` | Modified | Full implementation of `list` and `get` commands with generated Catalog Manager client |
 | `internal/commands/catalog_service_type_test.go` | Created | 9 Ginkgo test specs with httptest-based mocking |
 | `internal/commands/helpers_test.go` | Modified | Fixed pre-existing lint issues (gofumpt `0600`→`0o600`, prealloc capacity hint) |
 
@@ -52,15 +52,15 @@ Topic 5 implements the `dcm catalog service-type` command group with read-only s
 
 ## Key Design Decisions
 
-1. **Generated client from control-plane** — Per REQ-CST-050, all service-type operations use the oapi-codegen generated client from `github.com/dcm-project/control-plane/pkg/catalog/client`. The `newCatalogClient` function follows the same pattern as `newPolicyClient`, using `catalogclient.NewClient(apiBaseURL(cfg), catalogclient.WithHTTPClient(httpClient))`.
+1. **Generated client from catalog-manager** — Per REQ-CST-050, all service-type operations use the oapi-codegen generated client from `github.com/dcm-project/catalog-manager/pkg/client`. The `newCatalogClient` function follows the same pattern as `newPolicyClient`, using `catalogclient.NewClient(apiBaseURL(cfg), catalogclient.WithHTTPClient(httpClient))`.
 
-2. **Separate API type import** — The catalog client uses dot-import for its API types internally, but these are not re-exported. The command file imports both `catalogapi` (from `github.com/dcm-project/control-plane/api/catalog/v1alpha1`, for `ListServiceTypesParams`) and `catalogclient` (for client construction).
+2. **Separate API type import** — The catalog-manager client uses dot-import for its API types internally, but these are not re-exported. The command file imports both `catalogapi` (for `ListServiceTypesParams`) and `catalogclient` (for client construction).
 
 3. **Table columns** — The spec does not define specific table columns for service types. Columns were chosen based on the ServiceType model fields: UID, SERVICE TYPE, API VERSION, CREATED. The `path` field was not included as a separate ID column since UID already serves as the unique identifier.
 
-4. **List response uses `results` field** — Unlike the policy list which uses a `policies` field, the catalog API's `ServiceTypeList` type uses `results` for the array of service types and `next_page_token` for pagination.
+4. **List response uses `results` field** — Unlike the policy list which uses a `policies` field, the Catalog Manager's `ServiceTypeList` type uses `results` for the array of service types and `next_page_token` for pagination.
 
-5. **Reusable `newCatalogClient` in `helpers.go`** — The catalog client constructor lives in `helpers.go` alongside `newPolicyClient` for reuse by Topics 6 (catalog item) and 7 (catalog instance) since all catalog operations use the same control-plane catalog client.
+5. **Reusable `newCatalogClient` in `helpers.go`** — The catalog client constructor lives in `helpers.go` alongside `newPolicyClient` for reuse by Topics 6 (catalog item) and 7 (catalog instance) since all catalog operations go through the same Catalog Manager.
 
 ---
 

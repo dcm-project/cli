@@ -27,7 +27,7 @@ Topic 2 implements configuration management per spec section 4.2. It provides Vi
 
 | TC ID | Description | Status |
 |-------|-------------|--------|
-| TC-U001 | Config file loading (`control-plane-url` from YAML) | Pass |
+| TC-U001 | Config file loading (`api-gateway-url` from YAML) | Pass |
 | TC-U002 | Env var overrides config file value | Pass |
 | TC-U003 | CLI flag overrides env var and config file | Pass |
 | TC-U004 | Built-in defaults for all 7 config fields | Pass |

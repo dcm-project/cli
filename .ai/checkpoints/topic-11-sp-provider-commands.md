@@ -9,7 +9,7 @@
 
 ## Scope
 
-Topic 11 implements the `dcm sp provider` command group with read-only subcommands (`list` and `get`) per spec section 4.11. The command lists provider registrations in control-plane (not external Service Provider runtimes). All operations use the generated SP Manager client from `github.com/dcm-project/control-plane/pkg/sp/client/provider`.
+Topic 11 implements the `dcm sp provider` command group with read-only subcommands (`list` and `get`) per spec section 4.11. Providers are service providers registered with the Service Provider Manager. The CLI provides read-only access to these resources via the top-level generated SP Manager client (`service-provider-manager/pkg/client`).
 
 ### Requirements Addressed
 
@@ -19,7 +19,7 @@ Topic 11 implements the `dcm sp provider` command group with read-only subcomman
 | REQ-SPP-020 | Display SP providers in configured output format | Done |
 | REQ-SPP-030 | `dcm sp provider get PROVIDER_ID` | Done |
 | REQ-SPP-040 | Missing `PROVIDER_ID` → usage error (exit code 2) | Done |
-| REQ-SPP-050 | All commands use generated SP Manager client from control-plane | Done |
+| REQ-SPP-050 | All commands use generated SP Manager client | Done |
 
 ### Tests Implemented (12 specs)
 
@@ -53,13 +53,13 @@ Topic 11 implements the `dcm sp provider` command group with read-only subcomman
 
 ## Key Design Decisions
 
-1. **SP Manager client from control-plane** — Per REQ-SPP-050, all SP provider operations use the oapi-codegen generated client from `github.com/dcm-project/control-plane/pkg/sp/client/provider` (not the `resource_manager` sub-package). The `newSPProviderClient` function follows the same pattern as `newSPResourceClient`.
+1. **Top-level SP Manager client** — Per REQ-SPP-050, all SP provider operations use the oapi-codegen generated client from `github.com/dcm-project/service-provider-manager/pkg/client` (not the `resource_manager` sub-package). The `newSPProviderClient` function follows the same pattern as `newSPResourceClient`.
 
-2. **Separate API type import** — SP provider API types live in `github.com/dcm-project/control-plane/api/sp/v1alpha1/provider`, imported as `spmapi` for `ListProvidersParams`.
+2. **Separate API type import** — The SP Manager has its API types in `api/v1alpha1`, imported as `spmapi` for `ListProvidersParams`.
 
 3. **Table columns** — ID, NAME, SERVICE TYPE, HEALTH, CREATED per spec section 4.11. Fields map to `id`, `name`, `service_type`, `health_status`, `create_time` from the `Provider` type. (Updated 2026-04-22: removed STATUS column after upstream API dropped the `status` field.)
 
-4. **List response uses `providers` field** — The SP Manager API's `ProviderList` type uses `providers` for the array and `next_page_token` for pagination.
+4. **List response uses `providers` field** — The SP Manager's `ProviderList` type uses `providers` for the array and `next_page_token` for pagination.
 
 5. **`--type` filter** — The `ListProvidersParams` includes a `Type` field passed as the `type` query parameter, matching REQ-SPP-010.
 

@@ -90,4 +90,4 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 8. **Commit conventions**: All commit messages must include a `Co-Authored-By:` line. The `git commit` command must always use the `--signoff` flag (e.g., `git commit --signoff`).
 
-9. **Documentation sync**: When changing behavior, flags, env vars, module paths, or architecture, update all of: `README.md`, `CLAUDE.md`, `.ai/specs/`, `.ai/test-plans/`, and relevant `.ai/checkpoints/`.
+9. **Documentation sync**: When changing behavior, flags, env vars, module paths, or architecture, update `README.md`, `CLAUDE.md`, `.ai/specs/`, and `.ai/test-plans/`. Leave `.ai/checkpoints/` unchanged — they are historical dev notes.

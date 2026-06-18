@@ -1221,7 +1221,7 @@ Depends on Topic 1 (CLI Framework).
 Implement the `dcm sp provider` command group with read-only subcommands: `list`
 and `get`. Providers are service providers registered with the Service Provider
 Manager. The CLI provides read-only access to these resources via the top-level
-generated SP provider client (`control-plane/pkg/sp/client/provider`).
+generated SP Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`).
 
 Out of scope: SP provider create/update/delete (managed via other flows),
 SP provider health check.
@@ -1234,7 +1234,7 @@ SP provider health check.
 | REQ-SPP-020 | `dcm sp provider list` MUST display SP providers in the configured output format | MUST | |
 | REQ-SPP-030 | `dcm sp provider get` MUST accept a `PROVIDER_ID` positional argument and display the SP provider | MUST | |
 | REQ-SPP-040 | Missing `PROVIDER_ID` argument for `get` MUST result in a usage error (exit code 2) | MUST | |
-| REQ-SPP-050 | All SP provider commands MUST use the generated SP provider client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) | MUST | |
+| REQ-SPP-050 | All SP provider commands MUST use the generated SP Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) | MUST | |
 
 #### Table Output Columns
 
@@ -1413,10 +1413,10 @@ Formatting).
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-XC-CLI-010 | The CLI MUST use the generated policy client (`github.com/dcm-project/control-plane/pkg/policy/client`) for all policy operations | MUST | |
-| REQ-XC-CLI-020 | The CLI MUST use the generated catalog client (`github.com/dcm-project/control-plane/pkg/catalog/client`) for all catalog operations | MUST | |
-| REQ-XC-CLI-025 | The CLI MUST use the generated SP resource client (`github.com/dcm-project/control-plane/pkg/sp/client/resource_manager`) for all SP resource operations | MUST | |
-| REQ-XC-CLI-026 | The CLI MUST use the generated SP provider client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) for all SP provider operations | MUST | |
+| REQ-XC-CLI-010 | The CLI MUST use the generated Policy Manager client (`github.com/dcm-project/control-plane/pkg/policy/client`) for all policy operations | MUST | |
+| REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client (`github.com/dcm-project/control-plane/pkg/catalog/client`) for all catalog operations | MUST | |
+| REQ-XC-CLI-025 | The CLI MUST use the generated SP Resource Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/resource_manager`) for all SP resource operations | MUST | |
+| REQ-XC-CLI-026 | The CLI MUST use the generated SP Manager client (`github.com/dcm-project/control-plane/pkg/sp/client/provider`) for all SP provider operations | MUST | |
 | REQ-XC-CLI-030 | All clients MUST be instantiated with the control-plane URL appended with `/api/v1alpha1` | MUST | |
 | REQ-XC-CLI-040 | All clients MUST respect the configured request timeout. The timeout applies to the HTTP request deadline (context timeout) only; file I/O and output formatting are not subject to the timeout. | MUST | |
 | REQ-XC-CLI-050 | All clients MUST use a custom HTTP client with TLS transport when the control-plane URL uses `https://` | MUST | |
@@ -1428,10 +1428,10 @@ Formatting).
 - **Validates:** REQ-XC-CLI-030
 - **Given** the control-plane URL is `http://localhost:8080`
 - **When** the generated clients are created
-- **Then** the policy client MUST be created with `http://localhost:8080/api/v1alpha1`
-- **And** the catalog client MUST be created with `http://localhost:8080/api/v1alpha1`
-- **And** the SP resource client MUST be created with `http://localhost:8080/api/v1alpha1`
-- **And** the SP provider client MUST be created with `http://localhost:8080/api/v1alpha1`
+- **Then** the Policy Manager client MUST be created with `http://localhost:8080/api/v1alpha1`
+- **And** the Catalog Manager client MUST be created with `http://localhost:8080/api/v1alpha1`
+- **And** the SP Resource Manager client MUST be created with `http://localhost:8080/api/v1alpha1`
+- **And** the SP Manager client MUST be created with `http://localhost:8080/api/v1alpha1`
 
 ##### AC-XC-CLI-020: Request timeout
 

@@ -26,10 +26,10 @@ control-plane monolith on port 8080. The CLI uses generated clients from
 - TLS support with custom CA certificates, client certificates (mTLS), and skip-verify
 - Shell autocompletion generation (bash, zsh, fish, powershell)
 - Container image for distribution
+- OIDC authentication (device login, token storage, Bearer transport) - see [dcm-cli-oidc-auth.spec.md](dcm-cli-oidc-auth.spec.md)
 
 **Out of scope (v1alpha1):**
 
-- Authentication and authorization (no auth in v1alpha1 control-plane API)
 - Interactive/wizard-style resource creation
 - Watch/streaming operations
 - Plugin/extension system
@@ -40,7 +40,8 @@ control-plane monolith on port 8080. The CLI uses generated clients from
 
 **Reference documents:**
 
-- [DCM CLI Specification](.ai/specs/dcm-cli.spec.md)
+- [DCM CLI Specification](dcm-cli.spec.md)
+- [DCM CLI OIDC Authentication](dcm-cli-oidc-auth.spec.md) - device login, token storage, Bearer transport
 - Control-plane OpenAPI: `api/*/v1alpha1/openapi.yaml` in dcm-project/control-plane
 - [AEP Standards](https://aep.dev/) - API Enhancement Proposals
 - RFC 7807 - Problem Details for HTTP APIs

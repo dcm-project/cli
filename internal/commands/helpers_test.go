@@ -133,6 +133,25 @@ var _ = Describe("buildHTTPClient (via commands)", func() {
 		})
 	})
 
+	Describe("auth wiring", func() {
+		It("should send Authorization Bearer when --token is set", func() {
+			var receivedAuth string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				receivedAuth = r.Header.Get("Authorization")
+				writeJSONResponse(w, http.StatusOK, emptyListResponse())
+			}))
+			defer server.Close()
+
+			err := executeWithArgs(
+				"--control-plane-url", server.URL,
+				"--token", "ci-static-token",
+				"policy", "list",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(receivedAuth).To(Equal("Bearer ci-static-token"))
+		})
+	})
+
 	Describe("https:// URL", func() {
 		It("should connect to an HTTPS server with --tls-ca-cert", func() {
 			ca := newTestCA()

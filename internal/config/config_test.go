@@ -3,9 +3,11 @@ package config_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/dcm-project/cli/internal/commands"
 	"github.com/dcm-project/cli/internal/config"
@@ -18,6 +20,8 @@ func clearDCMEnvVars() {
 		"DCM_OUTPUT_FORMAT",
 		"DCM_TIMEOUT",
 		"DCM_CONFIG",
+		"DCM_ISSUER_URL",
+		"DCM_TOKEN",
 		"DCM_TLS_CA_CERT",
 		"DCM_TLS_CLIENT_CERT",
 		"DCM_TLS_CLIENT_KEY",
@@ -113,6 +117,8 @@ var _ = Describe("Configuration", func() {
 			Expect(cfg.TLSClientCert).To(BeEmpty())
 			Expect(cfg.TLSClientKey).To(BeEmpty())
 			Expect(cfg.TLSSkipVerify).To(BeFalse())
+			Expect(cfg.IssuerURL).To(BeEmpty())
+			Expect(cfg.Token).To(BeEmpty())
 		})
 	})
 
@@ -164,7 +170,8 @@ var _ = Describe("Configuration", func() {
 	})
 
 	Describe("TC-U008: All environment variables", func() {
-		DescribeTable("should load configuration from each environment variable",
+		DescribeTable(
+			"should load configuration from each environment variable",
 			func(envVar, envValue, configField string, expected any) {
 				cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
 				GinkgoT().Setenv(envVar, envValue)
@@ -193,6 +200,10 @@ var _ = Describe("Configuration", func() {
 					Expect(cfg.TLSClientKey).To(Equal(expected))
 				case "TLSSkipVerify":
 					Expect(cfg.TLSSkipVerify).To(Equal(expected))
+				case "IssuerURL":
+					Expect(cfg.IssuerURL).To(Equal(expected))
+				case "Token":
+					Expect(cfg.Token).To(Equal(expected))
 				}
 			},
 			Entry("DCM_CONTROL_PLANE_URL", "DCM_CONTROL_PLANE_URL", "http://cp:8080", "ControlPlaneURL", "http://cp:8080"),
@@ -202,6 +213,191 @@ var _ = Describe("Configuration", func() {
 			Entry("DCM_TLS_CLIENT_CERT", "DCM_TLS_CLIENT_CERT", "/path/cert.pem", "TLSClientCert", "/path/cert.pem"),
 			Entry("DCM_TLS_CLIENT_KEY", "DCM_TLS_CLIENT_KEY", "/path/key.pem", "TLSClientKey", "/path/key.pem"),
 			Entry("DCM_TLS_SKIP_VERIFY", "DCM_TLS_SKIP_VERIFY", "true", "TLSSkipVerify", true),
+			Entry("DCM_ISSUER_URL", "DCM_ISSUER_URL", "http://keycloak:8080/realms/dcm", "IssuerURL", "http://keycloak:8080/realms/dcm"),
+			Entry("DCM_TOKEN", "DCM_TOKEN", "static-bearer-token", "Token", "static-bearer-token"),
 		)
+	})
+
+	Describe("Auth configuration", func() {
+		It("should load issuer-url from --issuer-url flag", func() {
+			cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{
+				"--config", cfgPath,
+				"--issuer-url", "https://keycloak.example.com/realms/dcm",
+				"version",
+			})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.IssuerURL).To(Equal("https://keycloak.example.com/realms/dcm"))
+		})
+
+		It("should load issuer-url from DCM_ISSUER_URL when no flag is set", func() {
+			cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
+			GinkgoT().Setenv("DCM_ISSUER_URL", "https://keycloak.example.com/realms/dcm")
+
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{"--config", cfgPath, "version"})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.IssuerURL).To(Equal("https://keycloak.example.com/realms/dcm"))
+		})
+
+		It("should load issuer-url from config file", func() {
+			cfgPath := writeConfigFile("issuer-url: https://file.example.com/realms/dcm\n")
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{"--config", cfgPath, "version"})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.IssuerURL).To(Equal("https://file.example.com/realms/dcm"))
+		})
+
+		It("should prefer --issuer-url over env and config file", func() {
+			cfgPath := writeConfigFile("issuer-url: https://file.example.com/realms/dcm\n")
+			GinkgoT().Setenv("DCM_ISSUER_URL", "https://env.example.com/realms/dcm")
+
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{
+				"--config", cfgPath,
+				"--issuer-url", "https://flag.example.com/realms/dcm",
+				"version",
+			})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.IssuerURL).To(Equal("https://flag.example.com/realms/dcm"))
+		})
+
+		It("should prefer DCM_ISSUER_URL over config file", func() {
+			cfgPath := writeConfigFile("issuer-url: https://file.example.com/realms/dcm\n")
+			GinkgoT().Setenv("DCM_ISSUER_URL", "https://env.example.com/realms/dcm")
+
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{"--config", cfgPath, "version"})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.IssuerURL).To(Equal("https://env.example.com/realms/dcm"))
+		})
+
+		It("should load token from --token flag", func() {
+			cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{
+				"--config", cfgPath,
+				"--token", "flag-static-token",
+				"version",
+			})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.Token).To(Equal("flag-static-token"))
+		})
+
+		It("should load token from DCM_TOKEN when no flag is set", func() {
+			cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
+			GinkgoT().Setenv("DCM_TOKEN", "env-static-token")
+
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{"--config", cfgPath, "version"})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.Token).To(Equal("env-static-token"))
+		})
+
+		It("should prefer --token over DCM_TOKEN", func() {
+			cfgPath := filepath.Join(GinkgoT().TempDir(), "nonexistent.yaml")
+			GinkgoT().Setenv("DCM_TOKEN", "env-static-token")
+
+			cmd := commands.NewRootCommand()
+			cmd.SetArgs([]string{
+				"--config", cfgPath,
+				"--token", "flag-static-token",
+				"version",
+			})
+			cmd.SetOut(GinkgoWriter)
+			cmd.SetErr(GinkgoWriter)
+			_ = cmd.Execute()
+
+			cfg, err := config.Load(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cfg.Token).To(Equal("flag-static-token"))
+		})
+
+		It("should persist issuer-url via SaveConfig under HOME", func() {
+			home := GinkgoT().TempDir()
+			GinkgoT().Setenv("HOME", home)
+
+			Expect(config.SaveConfig("", map[string]string{
+				"issuer-url": "https://keycloak.example.com/realms/dcm",
+			})).To(Succeed())
+
+			data, err := os.ReadFile(filepath.Join(home, ".dcm", "config.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring("issuer-url: https://keycloak.example.com/realms/dcm"))
+		})
+
+		It("should persist via SaveConfig to an explicit path", func() {
+			dir := GinkgoT().TempDir()
+			configPath := filepath.Join(dir, "custom", "config.yaml")
+
+			Expect(config.SaveConfig(configPath, map[string]string{
+				"issuer-url": "https://keycloak.example.com/realms/dcm",
+			})).To(Succeed())
+
+			data, err := os.ReadFile(configPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring("issuer-url: https://keycloak.example.com/realms/dcm"))
+		})
+
+		It("should omit Token when marshalling Config to YAML", func() {
+			cfg := config.Config{
+				ControlPlaneURL: "http://localhost:8080",
+				IssuerURL:       "https://keycloak.example.com/realms/dcm",
+				Token:           "secret-must-not-appear",
+			}
+			out, err := yaml.Marshal(cfg)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(out)).NotTo(ContainSubstring("secret-must-not-appear"))
+			Expect(string(out)).NotTo(ContainSubstring("token:"))
+		})
+
+		It("should not write token key when SaveConfig is called with other values", func() {
+			home := GinkgoT().TempDir()
+			GinkgoT().Setenv("HOME", home)
+
+			Expect(config.SaveConfig("", map[string]string{
+				"issuer-url": "https://keycloak.example.com/realms/dcm",
+			})).To(Succeed())
+
+			data, err := os.ReadFile(filepath.Join(home, ".dcm", "config.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.Contains(string(data), "token:")).To(BeFalse())
+		})
 	})
 })

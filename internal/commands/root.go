@@ -49,12 +49,16 @@ func NewRootCommand() *cobra.Command {
 	flags.String("tls-client-cert", "", "Path to client certificate file for mTLS")
 	flags.String("tls-client-key", "", "Path to client private key file for mTLS")
 	flags.Bool("tls-skip-verify", false, "Skip TLS certificate verification")
+	flags.String("issuer-url", "", "OIDC issuer URL for authentication")
+	flags.String("token", "", "Bearer token for authentication (bypasses OIDC flow)")
 
 	cmd.AddCommand(newPolicyCommand())
 	cmd.AddCommand(newCatalogCommand())
 	cmd.AddCommand(newSPCommand())
 	cmd.AddCommand(newVersionCommand())
 	cmd.AddCommand(newCompletionCommand())
+	cmd.AddCommand(newLoginCommand())
+	cmd.AddCommand(newLogoutCommand())
 
 	return cmd
 }

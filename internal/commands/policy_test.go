@@ -28,6 +28,8 @@ func clearDCMEnvVars() {
 		"DCM_TLS_CLIENT_CERT",
 		"DCM_TLS_CLIENT_KEY",
 		"DCM_TLS_SKIP_VERIFY",
+		"DCM_ISSUER_URL",
+		"DCM_TOKEN",
 	} {
 		Expect(os.Unsetenv(env)).To(Succeed())
 	}

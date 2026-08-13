@@ -30,6 +30,8 @@ var _ = Describe("Root Command", func() {
 			Expect(helpOutput).To(ContainSubstring("sp"))
 			Expect(helpOutput).To(ContainSubstring("version"))
 			Expect(helpOutput).To(ContainSubstring("completion"))
+			Expect(helpOutput).To(ContainSubstring("login"))
+			Expect(helpOutput).To(ContainSubstring("logout"))
 		})
 	})
 
@@ -93,6 +95,8 @@ var _ = Describe("Root Command", func() {
 				"--tls-client-cert",
 				"--tls-client-key",
 				"--tls-skip-verify",
+				"--issuer-url",
+				"--token",
 			}
 			for _, flag := range expectedFlags {
 				Expect(helpOutput).To(ContainSubstring(flag),

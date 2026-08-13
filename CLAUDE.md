@@ -59,9 +59,16 @@ make test-e2e
   - Supports table, JSON, and YAML output formats
   - Implements `Formatter` interface
 
+- **internal/auth/**: OIDC authentication
+  - `auth.go`: Device Authorization Grant flow (RFC 8628), token revocation
+  - `token.go`: Token storage (OS keyring primary, file fallback), JWT expiry checking
+  - `transport.go`: Authenticated HTTP RoundTripper with lazy token loading and refresh
+
 - **internal/commands/**: Cobra command definitions
   - `root.go`: Root command with global flags
-  - `helpers.go`: Client constructors, HTTP/TLS helpers, input file parsing
+  - `helpers.go`: Client constructors, HTTP/TLS helpers, input file parsing, auth transport wiring
+  - `login.go`: `dcm login` - OIDC device authorization flow
+  - `logout.go`: `dcm logout` - token revocation and credential cleanup
   - `policy.go`: Policy CRUD commands
   - `catalog_service_type.go`: Service type list/get commands
   - `catalog_item.go`: Catalog item create/list/get/delete commands
@@ -89,7 +96,9 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 2. **Generated clients**: Import from `github.com/dcm-project/control-plane/pkg/...` (see links in Project Overview). Client constructors live in `helpers.go`. No hand-written HTTP client code.
 
-3. **Configuration precedence**: CLI flags > environment variables (`DCM_CONTROL_PLANE_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`) > config file (`~/.dcm/config.yaml`) > built-in defaults.
+3. **Configuration precedence**: CLI flags > environment variables (`DCM_CONTROL_PLANE_URL`, `DCM_OUTPUT_FORMAT`, `DCM_TIMEOUT`, `DCM_CONFIG`, `DCM_ISSUER_URL`, `DCM_TOKEN`) > config file (`~/.dcm/config.yaml`) > built-in defaults.
+
+3a. **Authentication**: When `--issuer-url` is set (or `DCM_ISSUER_URL`), the HTTP client wraps its transport with an `AuthTransport` that injects Bearer tokens. `dcm login` / `dcm logout` use a plain (non-auth) HTTP client for OIDC protocol traffic, with TLS derived from the issuer URL. `dcm login` persists tokens (keyring or `~/.dcm/tokens.json`) and writes `issuer-url` to the active config file (`--config` / `DCM_CONFIG` or `~/.dcm/config.yaml`); `control-plane-url` is written only when explicitly set via `--control-plane-url` or `DCM_CONTROL_PLANE_URL`. `DCM_TOKEN` / `--token` bypasses the OIDC flow with a static Bearer token for CI. Client ID (`dcm-cli`) is hardcoded.
 
 4. **Output formatting**: All commands support `--output/-o` flag with `table` (default), `json`, and `yaml` formats.
 

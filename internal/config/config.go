@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.yaml.in/yaml/v3"
 )
 
 const defaultControlPlaneURL = "http://localhost:8080"
@@ -41,6 +42,8 @@ type Config struct {
 	TLSClientCert   string `yaml:"tls-client-cert" mapstructure:"tls-client-cert"`
 	TLSClientKey    string `yaml:"tls-client-key" mapstructure:"tls-client-key"`
 	TLSSkipVerify   bool   `yaml:"tls-skip-verify" mapstructure:"tls-skip-verify"`
+	IssuerURL       string `yaml:"issuer-url" mapstructure:"issuer-url"`
+	Token           string `yaml:"-" mapstructure:"token"`
 }
 
 // Load reads configuration from file, environment variables, and command-line
@@ -56,6 +59,8 @@ func Load(cmd *cobra.Command) (*Config, error) {
 	v.SetDefault("tls-client-cert", "")
 	v.SetDefault("tls-client-key", "")
 	v.SetDefault("tls-skip-verify", false)
+	v.SetDefault("issuer-url", "")
+	v.SetDefault("token", "")
 
 	// Environment variable binding (REQ-CFG-030)
 	v.SetEnvPrefix("DCM")
@@ -66,6 +71,8 @@ func Load(cmd *cobra.Command) (*Config, error) {
 	v.MustBindEnv("tls-client-cert", "DCM_TLS_CLIENT_CERT")
 	v.MustBindEnv("tls-client-key", "DCM_TLS_CLIENT_KEY")
 	v.MustBindEnv("tls-skip-verify", "DCM_TLS_SKIP_VERIFY")
+	v.MustBindEnv("issuer-url", "DCM_ISSUER_URL")
+	v.MustBindEnv("token", "DCM_TOKEN")
 
 	// Config file path (REQ-CFG-010, REQ-CFG-020)
 	configPath := configFilePath(cmd)
@@ -118,6 +125,71 @@ func configFilePath(cmd *cobra.Command) string {
 	return ""
 }
 
+// ConfigPath returns the config file path that Load would use for cmd:
+// --config / DCM_CONFIG if set, otherwise ~/.dcm/config.yaml.
+func ConfigPath(cmd *cobra.Command) string {
+	if path := configFilePath(cmd); path != "" {
+		return path
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".dcm", "config.yaml")
+}
+
+// SaveConfig merges the provided key-value pairs into the config file at path,
+// creating the file and parent directory if they don't exist. Existing values
+// not present in the values map are preserved. If path is empty, writes to
+// ~/.dcm/config.yaml.
+func SaveConfig(path string, values map[string]string) error {
+	configPath := path
+	if configPath == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("unable to determine home directory: %w", err)
+		}
+		configPath = filepath.Join(home, ".dcm", "config.yaml")
+	}
+
+	dir := filepath.Dir(configPath)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
+
+	existing := make(map[string]any)
+	data, err := os.ReadFile(configPath)
+	if err == nil {
+		if yamlErr := yaml.Unmarshal(data, &existing); yamlErr != nil {
+			return fmt.Errorf("parsing existing config: %w", yamlErr)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("reading config file: %w", err)
+	}
+	if existing == nil {
+		existing = make(map[string]any)
+	}
+
+	for k, v := range values {
+		existing[k] = v
+	}
+
+	out, err := yaml.Marshal(existing)
+	if err != nil {
+		return fmt.Errorf("marshalling config: %w", err)
+	}
+
+	tmpPath := configPath + ".tmp"
+	if err := os.WriteFile(tmpPath, out, 0o600); err != nil {
+		return fmt.Errorf("writing config file: %w", err)
+	}
+	if err := os.Rename(tmpPath, configPath); err != nil {
+		return fmt.Errorf("saving config file: %w", err)
+	}
+
+	return nil
+}
+
 // bindFlags binds only flags that were explicitly set by the user, so that
 // unset flags don't override environment variables or config file values.
 func bindFlags(v *viper.Viper, cmd *cobra.Command) error {
@@ -129,6 +201,8 @@ func bindFlags(v *viper.Viper, cmd *cobra.Command) error {
 		"tls-client-cert":   "tls-client-cert",
 		"tls-client-key":    "tls-client-key",
 		"tls-skip-verify":   "tls-skip-verify",
+		"issuer-url":        "issuer-url",
+		"token":             "token",
 	}
 
 	for flagName, configKey := range flagToKey {

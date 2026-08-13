@@ -17,6 +17,7 @@ import (
 	spmclient "github.com/dcm-project/control-plane/pkg/sp/client/provider"
 	sprmclient "github.com/dcm-project/control-plane/pkg/sp/client/resource_manager"
 
+	"github.com/dcm-project/cli/internal/auth"
 	"github.com/dcm-project/cli/internal/config"
 	"github.com/dcm-project/cli/internal/output"
 	"github.com/spf13/cobra"
@@ -66,12 +67,71 @@ func newFormatter(cmd *cobra.Command, table *output.TableDef, command string) (*
 // buildHTTPClient creates an HTTP client from the resolved configuration.
 // When the control plane URL uses https://, TLS is configured using the
 // TLS-related settings. When it uses http://, TLS settings are ignored.
+// When auth is configured (issuer-url or token), the transport is wrapped
+// with an AuthTransport that injects Bearer tokens.
 func buildHTTPClient(cfg *config.Config) (*http.Client, error) {
-	if !strings.HasPrefix(cfg.ControlPlaneURL, "https://") {
-		return &http.Client{}, nil
+	baseTransport, err := tlsTransportForURL(cfg, cfg.ControlPlaneURL)
+	if err != nil {
+		return nil, err
 	}
 
-	// Validate mTLS pair: both or neither must be set.
+	if cfg.IssuerURL != "" || cfg.Token != "" {
+		var store auth.TokenStore
+		if cfg.Token == "" {
+			store, err = auth.NewTokenStore()
+			if err != nil {
+				return nil, fmt.Errorf("initializing credential store: %w", err)
+			}
+		}
+		var refreshTransport http.RoundTripper
+		if cfg.IssuerURL != "" {
+			refreshTransport, err = tlsTransportForURL(cfg, cfg.IssuerURL)
+			if err != nil {
+				return nil, err
+			}
+		}
+		transport := &auth.AuthTransport{
+			Base:             baseTransport,
+			RefreshTransport: refreshTransport,
+			Store:            store,
+			IssuerURL:        cfg.IssuerURL,
+			StaticToken:      cfg.Token,
+		}
+		return &http.Client{Transport: transport}, nil
+	}
+
+	if baseTransport != nil {
+		return &http.Client{Transport: baseTransport}, nil
+	}
+	return &http.Client{}, nil
+}
+
+// buildPlainHTTPClient returns an HTTP client with TLS configuration but no
+// auth transport. Used by login and logout for OIDC protocol traffic so that
+// AuthTransport cannot re-enter refresh while talking to the issuer.
+// TLS is derived from the issuer URL when set, otherwise the control-plane URL.
+func buildPlainHTTPClient(cfg *config.Config) (*http.Client, error) {
+	target := cfg.IssuerURL
+	if target == "" {
+		target = cfg.ControlPlaneURL
+	}
+	baseTransport, err := tlsTransportForURL(cfg, target)
+	if err != nil {
+		return nil, err
+	}
+	if baseTransport != nil {
+		return &http.Client{Transport: baseTransport}, nil
+	}
+	return &http.Client{}, nil
+}
+
+// tlsTransportForURL builds a TLS transport when url is https://. For http://
+// URLs, TLS settings are ignored and nil is returned.
+func tlsTransportForURL(cfg *config.Config, url string) (http.RoundTripper, error) {
+	if !strings.HasPrefix(url, "https://") {
+		return nil, nil
+	}
+
 	if (cfg.TLSClientCert == "") != (cfg.TLSClientKey == "") {
 		return nil, &UsageError{Err: fmt.Errorf("--tls-client-cert and --tls-client-key must be used together")}
 	}
@@ -100,11 +160,7 @@ func buildHTTPClient(cfg *config.Config) (*http.Client, error) {
 		tlsCfg.Certificates = []tls.Certificate{cert}
 	}
 
-	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsCfg,
-		},
-	}, nil
+	return &http.Transport{TLSClientConfig: tlsCfg}, nil
 }
 
 // apiBaseURL returns the API base URL with the /api/v1alpha1 suffix.

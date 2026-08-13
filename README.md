@@ -18,6 +18,7 @@ This specification covers the `v1alpha1` API surface, matching the control-plane
 | AEP Standards | [aep.dev](https://aep.dev/) - API Enhancement Proposals |
 | RFC 7807 | Problem Details for HTTP APIs |
 | RFC 7396 | JSON Merge Patch |
+| RFC 8628 | OAuth 2.0 Device Authorization Grant |
 
 ---
 
@@ -30,12 +31,21 @@ This specification covers the `v1alpha1` API surface, matching the control-plane
 │         │               │           control-plane monolith                   │
 │  dcm    │─────────────▶│        (port 8080, /api/v1alpha1/*)                │
 │  CLI    │ HTTP / HTTPS  │                                                    │
-│         │               │  Policy Manager · Catalog Manager · SP Manager     │
+│         │  + Bearer JWT │  Policy Manager · Catalog Manager · SP Manager     │
 │         │               │                                                    │
 └─────────┘               └────────────────────────────────────────────────────┘
+      │
+      │  OIDC Discovery
+      │  + Device Auth
+      ▼
+┌─────────────────┐
+│    Keycloak      │
+│  (realm: dcm)    │
+│  client: dcm-cli │
+└─────────────────┘
 ```
 
-The CLI communicates exclusively through the control plane (port 8080). When the control plane URL uses an `https://` scheme, the CLI establishes a TLS connection. When the URL uses `http://`, TLS is skipped entirely. These managers run in-process in the monolith (formerly separate services). CLI commands call paths under `/api/v1alpha1`:
+The CLI communicates exclusively through the control plane (port 8080). When the control plane URL uses an `https://` scheme, the CLI establishes a TLS connection. When the URL uses `http://`, TLS is skipped entirely. When authentication is configured, the CLI obtains tokens from a Keycloak OIDC provider and injects them as Bearer JWTs in API requests. These managers run in-process in the monolith (formerly separate services). CLI commands call paths under `/api/v1alpha1`:
 
 - `/api/v1alpha1/policies/*` → Policy Manager
 - `/api/v1alpha1/service-types/*` → Catalog Manager
@@ -51,10 +61,13 @@ cmd/dcm/
   main.go                    ← Entry point, root command setup
 
 internal/
+  auth/                      ← OIDC authentication (device flow, token storage, transport)
   config/                    ← Configuration loading/saving
   output/                    ← Output formatting (table/json/yaml)
   commands/
     root.go                  ← Root command, global flags
+    login.go                 ← OIDC device authorization login
+    logout.go                ← Token revocation and credential cleanup
     version.go               ← Version command
     policy.go                ← Policy command group
     catalog_service_type.go  ← Catalog service-type command group
@@ -70,6 +83,7 @@ internal/
 | Component | Responsibility |
 |-----------|---------------|
 | `cmd/dcm/main.go` | Bootstrap, wire dependencies, execute root command |
+| `internal/auth` | OIDC device flow, token storage (keyring + file), authenticated transport |
 | `internal/config` | Load config from file/env/flags with precedence |
 | `internal/output` | Format responses as table, JSON, or YAML |
 | `internal/commands` | Cobra command definitions, flag binding, client invocation |
@@ -87,6 +101,7 @@ Default location: `~/.dcm/config.yaml`
 
 ```yaml
 control-plane-url: http://localhost:8080
+issuer-url: ""
 output-format: table
 timeout: 30
 tls-ca-cert: ""
@@ -94,6 +109,8 @@ tls-client-cert: ""
 tls-client-key: ""
 tls-skip-verify: false
 ```
+
+Note: `dcm login` automatically creates and updates this file (see [Authentication](#13-authentication)).
 
 ### 3.2 Environment Variables
 
@@ -103,6 +120,8 @@ tls-skip-verify: false
 | `DCM_OUTPUT_FORMAT` | Output format (`table`, `json`, `yaml`) | `table` |
 | `DCM_TIMEOUT` | Request timeout in seconds | `30` |
 | `DCM_CONFIG` | Path to config file | `~/.dcm/config.yaml` |
+| `DCM_ISSUER_URL` | OIDC issuer URL (Keycloak realm URL) | `""` |
+| `DCM_TOKEN` | Static Bearer token for CI/scripting (bypasses device flow) | `""` |
 | `DCM_TLS_CA_CERT` | Path to CA certificate file for TLS verification | `""` |
 | `DCM_TLS_CLIENT_CERT` | Path to client certificate file for mTLS | `""` |
 | `DCM_TLS_CLIENT_KEY` | Path to client private key file for mTLS | `""` |
@@ -112,8 +131,8 @@ tls-skip-verify: false
 
 Configuration values are resolved in the following order (highest to lowest priority):
 
-1. **Command-line flags** (`--control-plane-url`, `--output`, `--timeout`)
-2. **Environment variables** (`DCM_CONTROL_PLANE_URL`, etc.)
+1. **Command-line flags** (`--control-plane-url`, `--output`, `--timeout`, `--issuer-url`, `--token`)
+2. **Environment variables** (`DCM_CONTROL_PLANE_URL`, `DCM_ISSUER_URL`, `DCM_TOKEN`, etc.)
 3. **Configuration file** (`~/.dcm/config.yaml`)
 4. **Built-in defaults**
 
@@ -130,6 +149,8 @@ These flags are available on all commands:
 | `--tls-ca-cert` | | Path to CA certificate file for TLS verification |
 | `--tls-client-cert` | | Path to client certificate file for mTLS |
 | `--tls-client-key` | | Path to client private key file for mTLS |
+| `--issuer-url` | | OIDC issuer URL for authentication |
+| `--token` | | Static Bearer token (CI/scripting) |
 | `--tls-skip-verify` | | Skip TLS certificate verification |
 
 ---
@@ -140,6 +161,8 @@ These flags are available on all commands:
 
 ```
 dcm
+├── login           # OIDC device authorization login
+├── logout          # Revoke tokens and clear credentials
 ├── policy          # Policy management
 │   ├── create
 │   ├── list
@@ -168,7 +191,60 @@ dcm
 └── version         # Print version info
 ```
 
-### 4.2 Policy Commands
+### 4.2 Login Command
+
+#### `dcm login`
+
+Authenticate with the DCM control plane using the OIDC Device Authorization Grant (RFC 8628). Initiates a device flow, opens a browser for the user to authenticate, and stores the resulting tokens locally.
+
+On success, `dcm login` saves `issuer-url` to the active config file (`--config` / `DCM_CONFIG`, or `~/.dcm/config.yaml`). It also saves `control-plane-url` when that value was explicitly provided via `--control-plane-url` or `DCM_CONTROL_PLANE_URL` (the built-in default alone is not written).
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--issuer-url` | Yes | OIDC issuer URL (e.g., Keycloak realm URL) |
+| `--control-plane-url` | No | Control plane URL to persist to config |
+
+```bash
+# Login to a DCM instance
+dcm login --issuer-url https://keycloak.example.com/realms/dcm --control-plane-url https://dcm.example.com
+
+# After first login, issuer-url (and control-plane-url when set) are saved to config
+dcm policy list
+```
+
+Example output:
+
+```
+Open https://keycloak.example.com/realms/dcm/device?user_code=ABCD-EFGH in your browser
+Or visit https://keycloak.example.com/realms/dcm/device and enter code: ABCD-EFGH
+Logged in as dcm-admin (token expires in 5m0s; auto-refresh enabled)
+```
+
+Tokens are stored in the OS keychain (macOS Keychain, Linux Secret Service, Windows Credential Manager) when available, falling back to `~/.dcm/tokens.json` (mode `0600`) in environments without keychain support (containers, CI, headless SSH).
+
+### 4.3 Logout Command
+
+#### `dcm logout`
+
+Revoke stored tokens and clear authentication credentials.
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--issuer-url` | Yes | OIDC issuer URL used during login |
+
+```bash
+dcm logout --issuer-url https://keycloak.example.com/realms/dcm
+```
+
+Example output:
+
+```
+Logged out successfully
+```
+
+If no stored credentials are found, the command prints "No stored credentials found" and exits successfully. Token revocation failures produce a warning but do not cause the command to fail.
+
+### 4.5 Policy Commands
 
 #### `dcm policy create`
 
@@ -302,7 +378,7 @@ Example output:
 Policy "my-policy" deleted successfully.
 ```
 
-### 4.3 Catalog Service-Type Commands
+### 4.6 Catalog Service-Type Commands
 
 #### `dcm catalog service-type list`
 
@@ -330,7 +406,7 @@ Get a single service type by ID.
 dcm catalog service-type get SERVICE_TYPE_ID
 ```
 
-### 4.4 Catalog Item Commands
+### 4.7 Catalog Item Commands
 
 #### `dcm catalog item create`
 
@@ -414,7 +490,7 @@ Delete a catalog item by ID.
 dcm catalog item delete CATALOG_ITEM_ID
 ```
 
-### 4.5 Catalog Instance Commands
+### 4.8 Catalog Instance Commands
 
 #### `dcm catalog instance create`
 
@@ -488,7 +564,7 @@ Delete a catalog item instance by ID.
 dcm catalog instance delete INSTANCE_ID
 ```
 
-### 4.6 SP Resource Commands
+### 4.9 SP Resource Commands
 
 #### `dcm sp resource list`
 
@@ -527,7 +603,7 @@ dcm sp resource get INSTANCE_ID
 dcm sp resource get INSTANCE_ID -o yaml
 ```
 
-### 4.7 Completion Command
+### 4.10 Completion Command
 
 #### `dcm completion`
 
@@ -551,7 +627,7 @@ dcm completion fish | source
 dcm completion powershell | Out-String | Invoke-Expression
 ```
 
-### 4.8 Version Command
+### 4.11 Version Command
 
 #### `dcm version`
 
@@ -583,6 +659,8 @@ package config
 
 type Config struct {
     ControlPlaneURL string `yaml:"control-plane-url" mapstructure:"control-plane-url"`
+    IssuerURL     string `yaml:"issuer-url" mapstructure:"issuer-url"`
+    Token         string `yaml:"-" mapstructure:"token"`
     OutputFormat  string `yaml:"output-format" mapstructure:"output-format"`
     Timeout       int    `yaml:"timeout" mapstructure:"timeout"`
     TLSCACert     string `yaml:"tls-ca-cert" mapstructure:"tls-ca-cert"`
@@ -594,7 +672,16 @@ type Config struct {
 // Load reads configuration from file, environment, and flag overrides.
 func Load() (*Config, error)
 
+// ConfigPath returns the resolved config file path for cmd.
+func ConfigPath(cmd *cobra.Command) string
+
+// SaveConfig merges values into the config file at path (atomic write).
+// Empty path writes to ~/.dcm/config.yaml.
+func SaveConfig(path string, values map[string]string) error
+
 ```
+
+Note: `Token` has `yaml:"-"` - it is never persisted to the config file for security. It is only available via the `DCM_TOKEN` env var or `--token` flag.
 
 ### 5.2 `internal/output`
 
@@ -631,6 +718,12 @@ Cobra command definitions. Each file registers its command tree and wires genera
 ```go
 // root.go
 func NewRootCommand() *cobra.Command
+
+// login.go
+func newLoginCommand() *cobra.Command   // dcm login
+
+// logout.go
+func newLogoutCommand() *cobra.Command  // dcm logout
 
 // policy.go
 func newPolicyCommand() *cobra.Command       // parent: dcm policy
@@ -671,7 +764,11 @@ func newSPResourceGetCommand() *cobra.Command
 func newCompletionCommand() *cobra.Command              // dcm completion [bash|zsh|fish|powershell]
 ```
 
-### 5.4 `internal/version`
+### 5.4 `internal/auth`
+
+OIDC device authorization, token storage (keyring with file fallback), and `AuthTransport` for Bearer injection/refresh. Public entry points: `DeviceLogin`, `RevokeToken`, `NewTokenStore`, `AuthTransport`. Behavior and usage are covered in [§13 Authentication](#13-authentication).
+
+### 5.5 `internal/version`
 
 Build-time version information injected via linker flags.
 
@@ -694,7 +791,7 @@ type Info struct {
 func Get() Info
 ```
 
-### 5.5 Generated Clients (External Dependencies)
+### 5.6 Generated Clients (External Dependencies)
 
 The CLI imports generated client packages from the control-plane monorepo:
 
@@ -724,10 +821,10 @@ type ClientInterface interface {
 }
 ```
 
-Clients are instantiated with the control-plane URL and a configured HTTP client. When the control-plane URL uses `https://`, the HTTP client is configured with a TLS transport based on the TLS settings (CA cert, client cert/key, skip verify). When the URL uses `http://`, TLS is not configured.
+Clients are instantiated with the control-plane URL and a configured HTTP client. When the control-plane URL uses `https://`, the HTTP client is configured with a TLS transport based on the TLS settings (CA cert, client cert/key, skip verify). When the URL uses `http://`, TLS is not configured. When authentication is configured (`issuer-url` or `token`), the base transport is wrapped with `AuthTransport` which lazily injects Bearer tokens. Token refresh uses a separate transport derived from the issuer URL (falling back to the control-plane base transport), so OIDC refresh works when the control plane is HTTP and the issuer is HTTPS with a private CA. Login and logout use a plain HTTP client (no AuthTransport) with TLS derived from the issuer URL for the same reason.
 
 ```go
-httpClient := buildHTTPClient(cfg) // configures TLS transport when URL is https
+httpClient := buildHTTPClient(cfg) // TLS + optional AuthTransport wrapping
 policyClient, _ := policyclient.NewClient(cfg.ControlPlaneURL + "/api/v1alpha1",
     policyclient.WithHTTPClient(httpClient))
 catalogClient, _ := catalogclient.NewClient(cfg.ControlPlaneURL + "/api/v1alpha1",
@@ -749,6 +846,14 @@ dcm-cli/
 │   └── dcm/
 │       └── main.go
 ├── internal/
+│   ├── auth/
+│   │   ├── auth.go
+│   │   ├── auth_suite_test.go
+│   │   ├── auth_test.go
+│   │   ├── token.go
+│   │   ├── token_test.go
+│   │   ├── transport.go
+│   │   └── transport_test.go
 │   ├── config/
 │   │   ├── config.go
 │   │   └── config_test.go
@@ -761,6 +866,8 @@ dcm-cli/
 │   ├── commands/
 │   │   ├── root.go
 │   │   ├── root_test.go
+│   │   ├── login.go
+│   │   ├── logout.go
 │   │   ├── version.go
 │   │   ├── policy.go
 │   │   ├── policy_test.go
@@ -812,11 +919,18 @@ User invokes command
   │
   ├─▶ Viper resolves config (flags → env → file → defaults)
   │
-  ├─▶ Build HTTP client (configure TLS transport if URL is https://)
+  ├─▶ Build HTTP client
+  │     ├─ Configure TLS transport if URL is https://
+  │     └─ Wrap with AuthTransport if issuer-url or token is set
   │
   ├─▶ Create generated client with control-plane URL and HTTP client
   │
   ├─▶ Execute API call via generated client
+  │     │  (AuthTransport lazily injects Bearer token on first request)
+  │     ├─ Valid cached token → inject, proceed
+  │     ├─ Expired token → refresh, inject, proceed
+  │     ├─ Static token (DCM_TOKEN) → inject directly, no refresh
+  │     └─ No auth configured → no Authorization header
   │
   ├─▶ Check response status
   │     ├─ Success → format and display response
@@ -862,7 +976,44 @@ dcm policy delete <id>
   └─▶ Exit 0
 ```
 
-### 7.3 Catalog Ordering Flow
+### 7.3 Authentication Flow
+
+```
+dcm login --issuer-url https://keycloak.example.com/realms/dcm --control-plane-url https://dcm.example.com
+  │
+  ├─▶ OIDC Discovery: GET <issuer-url>/.well-known/openid-configuration
+  ├─▶ Device Auth:    POST <device_authorization_endpoint>
+  ├─▶ Print verification URL and user code to stderr
+  ├─▶ Open browser to verification_uri_complete (best-effort)
+  ├─▶ Poll token endpoint until user completes browser auth
+  ├─▶ Store tokens (access + refresh + ID + expiry + token endpoint)
+  │     ├─ OS keychain (macOS Keychain, Linux Secret Service, Windows Credential Manager)
+  │     └─ File fallback: ~/.dcm/tokens.json (mode 0600)
+  ├─▶ Save issuer-url (and control-plane-url when explicitly set) to ~/.dcm/config.yaml
+  ├─▶ Print "Logged in as <username> (token expires in <ttl>; auto-refresh enabled)"
+  └─▶ Exit 0
+
+dcm logout --issuer-url https://keycloak.example.com/realms/dcm
+  │
+  ├─▶ Load stored token for issuer URL
+  ├─▶ POST revocation endpoint with refresh token (warning on failure)
+  ├─▶ Delete stored token
+  ├─▶ Print "Logged out successfully"
+  └─▶ Exit 0
+```
+
+**CI/scripting path** (no interactive login):
+
+```bash
+# Obtain token externally (e.g., via client_credentials grant using dcm-proxy client)
+export DCM_TOKEN="<bearer-token>"
+export DCM_CONTROL_PLANE_URL="https://dcm.example.com"
+
+# All commands use the static token directly - no refresh, no keychain
+dcm policy list
+```
+
+### 7.4 Catalog Ordering Flow
 
 ```
 dcm catalog instance create --from-file instance.yaml
@@ -874,14 +1025,14 @@ dcm catalog instance create --from-file instance.yaml
   └─▶ Exit 0
 ```
 
-### 7.4 Pagination
+### 7.5 Pagination
 
-#### 7.4.1 Page Size
+#### 7.5.1 Page Size
 
 While `--page-size` is an optional parameter, services may impose a default value. Always check if
 the response included `next_page_token`
 
-#### 7.4.2 Next Page Token
+#### 7.5.2 Next Page Token
 
 When a list response includes `next_page_token`, the CLI displays it for manual follow-up:
 
@@ -1070,6 +1221,9 @@ go 1.25.5
 | `github.com/spf13/viper` | Configuration management |
 | `gopkg.in/yaml.v3` | YAML parsing/output |
 | `github.com/dcm-project/control-plane` | Generated API clients (policy, catalog, SP) |
+| `github.com/coreos/go-oidc/v3` | OIDC discovery and provider metadata |
+| `golang.org/x/oauth2` | OAuth 2.0 device authorization flow, token refresh |
+| `github.com/zalando/go-keyring` | OS keychain access (macOS, Linux, Windows) |
 | `github.com/onsi/ginkgo/v2` | Test framework (test dependency) |
 | `github.com/onsi/gomega` | Test matchers (test dependency) |
 
@@ -1100,6 +1254,9 @@ import (
   - Command flag parsing and validation
   - API response handling and error parsing
   - Input file parsing (YAML/JSON)
+  - OIDC device flow with mock OIDC server
+  - Token storage (keyring, file fallback, atomic writes, expiry)
+  - Authenticated transport (static token, stored token, refresh, passthrough)
 
 Example test pattern:
 
@@ -1167,10 +1324,12 @@ make test-e2e   # Requires DCM_CONTROL_PLANE_URL pointing to live stack
 - TLS support with custom CA certificates, client certificates (mTLS), and skip-verify
 - Shell autocompletion generation (bash, zsh, fish, powershell)
 - Container image for distribution
+- OIDC authentication via Device Authorization Grant (RFC 8628)
+- Token storage with OS keychain and file fallback
+- Static Bearer token injection for CI/scripting (`DCM_TOKEN`)
 
 ### 12.2 Out of Scope (v1alpha1)
 
-- Authentication and authorization (no auth in v1alpha1 control-plane API)
 - Interactive/wizard-style resource creation
 - Watch/streaming operations
 - Plugin/extension system
@@ -1178,3 +1337,62 @@ make test-e2e   # Requires DCM_CONTROL_PLANE_URL pointing to live stack
 - Bulk operations
 - Resource diff/dry-run
 - Health check command for control-plane connectivity
+
+---
+
+## 13. Authentication
+
+### 13.1 Overview
+
+The CLI supports OIDC authentication via the OAuth 2.0 Device Authorization Grant (RFC 8628). When authentication is configured, API requests include a `Bearer` JWT in the `Authorization` header. Authentication is optional - when no issuer URL or token is configured, requests are sent without authentication.
+
+The Keycloak `dcm` realm provides a public client `dcm-cli` (no client secret) with device authorization enabled. The client ID is hardcoded and not configurable.
+
+### 13.2 Interactive Login
+
+For human users, `dcm login` performs the device authorization flow:
+
+```bash
+dcm login --issuer-url https://keycloak.example.com/realms/dcm --control-plane-url https://dcm.example.com
+```
+
+This discovers the OIDC provider endpoints, initiates a device flow, opens a browser for the user to authenticate, and stores the resulting tokens. On success, `issuer-url` is persisted to `~/.dcm/config.yaml`, and `control-plane-url` is persisted when explicitly set via flag or `DCM_CONTROL_PLANE_URL`.
+
+### 13.3 CI/Scripting (Static Token)
+
+For CI pipelines and automation, use `DCM_TOKEN` to inject a pre-obtained Bearer token directly:
+
+```bash
+export DCM_TOKEN="<bearer-token>"
+export DCM_CONTROL_PLANE_URL="https://dcm.example.com"
+dcm policy list
+```
+
+The static token path bypasses the device flow entirely - no refresh logic, no keychain, no config file interaction. Tokens can be obtained externally via the `dcm-proxy` confidential Keycloak client using a `client_credentials` grant.
+
+### 13.4 Token Storage
+
+Tokens are stored using a two-tier strategy:
+
+1. **OS keychain** (primary) - macOS Keychain, Linux Secret Service (GNOME Keyring/KDE Wallet), Windows Credential Manager. Service name: `dcm-cli`, key: normalized issuer URL.
+2. **File** (fallback) - `~/.dcm/tokens.json` with `0600` permissions. Activated automatically when the keychain is unavailable (containers, CI, headless SSH).
+
+The file backend uses atomic writes (write to `.tmp` then rename) for crash safety. The keyring backend delegates to the OS keychain API (`keyring.Set`).
+
+### 13.5 Token Lifecycle
+
+The `AuthTransport` handles token injection lazily during HTTP requests:
+
+1. **Fast path (no network)**: decode the JWT `exp` claim without verification. If the access token is valid (with 30s clock skew buffer), inject it directly.
+2. **Refresh path**: if expired, use the stored refresh token to obtain a new access token from the token endpoint. Save the refreshed tokens.
+3. **Failure path**: if refresh fails, return an actionable error: `"authentication expired, run 'dcm login' to re-authenticate"`.
+
+This design avoids network calls on every CLI invocation and keeps auth decoupled from the command tree (no `PersistentPreRunE` annotations needed).
+
+### 13.6 Security
+
+- Tokens are never written to the config file (`Token` has `yaml:"-"`)
+- The CLI warns on stderr when sending a Bearer token over unencrypted HTTP
+- `TokenData.String()` returns `[REDACTED]` to prevent accidental logging
+- Token file permissions are set to `0600` (owner read/write only)
+- Atomic file writes prevent partial-write corruption

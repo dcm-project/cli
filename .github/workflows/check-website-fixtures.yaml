@@ -1,0 +1,18 @@
+name: Check website fixtures
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 8 * * 1" # Weekly Monday 08:00 UTC
+
+jobs:
+  check-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify testdata/website/ matches upstream docs
+        run: hack/check-website-fixtures.sh

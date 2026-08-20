@@ -422,26 +422,33 @@ dcm catalog item create --from-file item.yaml
 dcm catalog item create --from-file item.yaml --id my-catalog-item
 ```
 
-Catalog item file format:
+Catalog item file format (multi-resource schema):
 
 ```yaml
 api_version: v1alpha1
-display_name: "Small Container"
+display_name: "Small VM"
 spec:
-  service_type: container
-  fields:
-    - path: spec.replicas
-      display_name: "Replica Count"
-      editable: true
-      default: "1"
-      validation_schema:
-        type: integer
-        minimum: 1
-        maximum: 10
-    - path: spec.container.image
-      display_name: "Container Image"
-      editable: true
+  resources:
+    - name: main
+      service_type: vm
+      fields:
+        - path: metadata
+          editable: true
+        - path: vcpu.count
+          display_name: "CPU Count"
+          editable: true
+          default: 2
+          validation_schema:
+            type: integer
+            minimum: 1
+            maximum: 4
+        - path: memory.size
+          display_name: "Memory (GB)"
+          editable: false
+          default: "2GB"
 ```
+
+Each catalog item defines one or more named resources under `spec.resources`. Each resource specifies its `service_type` and the `fields` available for customization.
 
 Example output (table):
 
@@ -505,19 +512,26 @@ Create a new catalog item instance.
 dcm catalog instance create --from-file instance.yaml
 ```
 
-Instance file format:
+Instance file format (multi-resource schema):
 
 ```yaml
 api_version: v1alpha1
-display_name: "My App Instance"
+display_name: "My Dev VM"
 spec:
-  catalog_item_id: my-catalog-item
+  catalog_item_id: small-vm
   user_values:
-    - path: spec.replicas
-      value: "3"
-    - path: spec.container.image
-      value: "nginx:latest"
+    - resource: main
+      path: metadata
+      value:
+        name: "small-vm"
+        labels:
+          env: "dev"
+    - resource: main
+      path: vcpu.count
+      value: 1
 ```
+
+Each `user_values` entry includes a `resource` field that identifies which named resource (from the catalog item's `spec.resources`) the value applies to.
 
 Example output (table):
 

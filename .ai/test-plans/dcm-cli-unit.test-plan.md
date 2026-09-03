@@ -1380,6 +1380,31 @@ test classes. Instead:
 
 ---
 
+## 13 · Documentation Contract Tests
+
+> **Suggested Ginkgo structure:** `Describe("Documentation Contract")` in `internal/commands/contract_test.go`.
+> These tests verify that the YAML examples published in the Getting Started guides round-trip through the CLI serialization layer without field loss. They use `testdata/website/` fixtures (kept in sync by `hack/check-website-fixtures.sh`) as the source of truth.
+
+### TC-U158: Catalog item YAML preserves spec.resources through CLI serialization
+
+- **Requirement:** REQ-CIT-010
+- **Acceptance Criteria:** AC-CIT-010
+- **Type:** Unit
+- **Given:** A mock server accepting POST `/api/v1alpha1/catalog-items` AND `testdata/website/small-vm.yaml` containing the documented multi-resource schema (`spec.resources`)
+- **When:** `dcm catalog item create --from-file testdata/website/small-vm.yaml` is executed
+- **Then:** The request body received by the mock server contains `spec.resources` with one resource whose `name` is `main`, `service_type` is `vm`, and `fields` contains all 5 documented key/value pairs
+
+### TC-U159: Catalog instance YAML preserves user_values[].resource through CLI serialization
+
+- **Requirement:** REQ-CIN-010
+- **Acceptance Criteria:** AC-CIN-010
+- **Type:** Unit
+- **Given:** A mock server accepting POST `/api/v1alpha1/catalog-item-instances` AND `testdata/website/my-vm.yaml` containing the documented instance schema with `user_values[].resource`
+- **When:** `dcm catalog instance create --from-file testdata/website/my-vm.yaml` is executed
+- **Then:** The request body received by the mock server contains `spec.user_values` with 2 entries, each having `resource: main`
+
+---
+
 ## Utility Test Case Index
 
 Utility and helper functions are tested **transitively** through the
@@ -1625,7 +1650,7 @@ dedicated test class or `Describe` block.
 | REQ-CST-030     | TC-U044                                             | Covered |
 | REQ-CST-040     | TC-U045                                             | Covered |
 | REQ-CST-050     | TC-U067 (via TC-U042, TC-U044)                      | Covered |
-| REQ-CIT-010     | TC-U046                                             | Covered |
+| REQ-CIT-010     | TC-U046, TC-U158                                    | Covered |
 | REQ-CIT-020     | TC-U047                                             | Covered |
 | REQ-CIT-030     | TC-U046                                             | Covered |
 | REQ-CIT-040     | TC-U049, TC-U050                                    | Covered |
@@ -1636,7 +1661,7 @@ dedicated test class or `Describe` block.
 | REQ-CIT-110     | TC-U067 (via TC-U046, TC-U049, TC-U051, TC-U055) | Covered |
 | REQ-CIT-120     | TC-U048                                             | Covered |
 | REQ-CIT-130     | TC-U052, TC-U056                                    | Covered |
-| REQ-CIN-010     | TC-U058                                             | Covered |
+| REQ-CIN-010     | TC-U058, TC-U159                                    | Covered |
 | REQ-CIN-020     | TC-U059                                             | Covered |
 | REQ-CIN-030     | TC-U058                                             | Covered |
 | REQ-CIN-040     | TC-U073, TC-U074                                    | Covered |
@@ -1700,7 +1725,7 @@ dedicated test class or `Describe` block.
 | REQ-XC-TLS-070  | TC-U095, TC-U096                                    | Covered |
 | REQ-XC-TLS-080  | TC-U090, TC-U097                                    | Covered |
 
-**Total:** 121 test case IDs — 95 in behavioural test classes, 26 in the utility
+**Total:** 123 test case IDs — 97 in behavioural test classes, 26 in the utility
 index (tested transitively through higher-level behavioural tests).
 
 ---

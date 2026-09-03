@@ -53,6 +53,7 @@ extract_yaml_block() {
 
 errors=0
 fetch_failures=0
+compared=0
 
 for fixture in "${!FIXTURE_SOURCES[@]}"; do
     source_file="${FIXTURE_SOURCES[$fixture]}"
@@ -96,6 +97,7 @@ for fixture in "${!FIXTURE_SOURCES[@]}"; do
     else
         echo "  OK"
     fi
+    compared=$((compared + 1))
 done
 
 if [[ ${errors} -gt 0 ]]; then
@@ -106,8 +108,8 @@ fi
 
 if [[ ${fetch_failures} -gt 0 ]]; then
     echo ""
-    if [[ "${GITHUB_EVENT_NAME:-}" == "schedule" ]]; then
-        echo "FAIL: ${fetch_failures} fixture(s) could not be fetched (scheduled run — treating as error)"
+    if [[ "${GITHUB_EVENT_NAME:-}" == "schedule" ]] || [[ ${compared} -eq 0 ]]; then
+        echo "FAIL: ${fetch_failures} fixture(s) could not be fetched — no fixtures were checked"
         exit 1
     fi
     echo "WARNING: ${fetch_failures} fixture(s) could not be fetched (skipped; network issue or rate limiting)"

@@ -57,8 +57,8 @@ var _ = Describe("Documentation Contract", func() {
 	}
 
 	Describe("Catalog Item YAML (small-vm.yaml)", func() {
-		// TC-U154: Documented catalog item YAML preserves spec.resources through CLI serialization
-		It("TC-U154: should serialize spec.resources with all required fields to the API", func() {
+		// TC-U158: Documented catalog item YAML preserves spec.resources through CLI serialization
+		It("TC-U158: should serialize spec.resources with all required fields to the API", func() {
 			var receivedBody v1alpha1.CatalogItem
 
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -85,8 +85,8 @@ var _ = Describe("Documentation Contract", func() {
 	})
 
 	Describe("Catalog Item Instance YAML (my-vm.yaml)", func() {
-		// TC-U155: Documented instance YAML preserves user_values[].resource through CLI serialization
-		It("TC-U155: should serialize user_values with the resource field to the API", func() {
+		// TC-U159: Documented instance YAML preserves user_values[].resource through CLI serialization
+		It("TC-U159: should serialize user_values with the resource field to the API", func() {
 			var receivedBody v1alpha1.CatalogItemInstance
 
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

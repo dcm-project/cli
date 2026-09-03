@@ -10,6 +10,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	v1alpha1 "github.com/dcm-project/control-plane/api/catalog/v1alpha1"
+
 	"github.com/dcm-project/cli/internal/commands"
 )
 
@@ -57,7 +59,7 @@ var _ = Describe("Documentation Contract", func() {
 	Describe("Catalog Item YAML (small-vm.yaml)", func() {
 		// TC-U154: Documented catalog item YAML preserves spec.resources through CLI serialization
 		It("TC-U154: should serialize spec.resources with all required fields to the API", func() {
-			var receivedBody map[string]any
+			var receivedBody v1alpha1.CatalogItem
 
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				Expect(r.Method).To(Equal(http.MethodPost))
@@ -71,31 +73,21 @@ var _ = Describe("Documentation Contract", func() {
 			err := executeCommand("catalog", "item", "create", "--from-file", docsFixturePath("small-vm.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(receivedBody).To(HaveKey("spec"))
-			spec, ok := receivedBody["spec"].(map[string]any)
-			Expect(ok).To(BeTrue(), "spec should be an object")
+			Expect(receivedBody.Spec).NotTo(BeNil(), "spec must not be silently dropped")
+			Expect(receivedBody.Spec.Resources).To(HaveLen(1), "spec.resources must not be silently dropped")
 
-			Expect(spec).To(HaveKey("resources"), "spec.resources must not be silently dropped")
-			resources, ok := spec["resources"].([]any)
-			Expect(ok).To(BeTrue(), "spec.resources should be an array")
-			Expect(resources).To(HaveLen(1))
-
-			res0, ok := resources[0].(map[string]any)
-			Expect(ok).To(BeTrue())
-			Expect(res0["name"]).To(Equal("main"))
-			Expect(res0["service_type"]).To(Equal("vm"))
-			Expect(res0).To(HaveKey("fields"))
-
-			fields, ok := res0["fields"].([]any)
-			Expect(ok).To(BeTrue())
-			Expect(len(fields)).To(BeNumerically(">=", 5), "all documented fields should be preserved")
+			res0 := receivedBody.Spec.Resources[0]
+			Expect(res0.Name).To(Equal("main"))
+			Expect(res0.ServiceType).To(Equal("vm"))
+			Expect(res0.Fields).NotTo(BeNil(), "fields must not be silently dropped")
+			Expect(*res0.Fields).To(HaveLen(5), "all documented fields should be preserved")
 		})
 	})
 
 	Describe("Catalog Item Instance YAML (my-vm.yaml)", func() {
 		// TC-U155: Documented instance YAML preserves user_values[].resource through CLI serialization
 		It("TC-U155: should serialize user_values with the resource field to the API", func() {
-			var receivedBody map[string]any
+			var receivedBody v1alpha1.CatalogItemInstance
 
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				Expect(r.Method).To(Equal(http.MethodPost))
@@ -109,21 +101,11 @@ var _ = Describe("Documentation Contract", func() {
 			err := executeCommand("catalog", "instance", "create", "--from-file", docsFixturePath("my-vm.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(receivedBody).To(HaveKey("spec"))
-			spec, ok := receivedBody["spec"].(map[string]any)
-			Expect(ok).To(BeTrue(), "spec should be an object")
+			Expect(receivedBody.Spec.UserValues).To(HaveLen(2), "user_values must not be silently dropped")
 
-			Expect(spec).To(HaveKey("user_values"), "spec.user_values must not be silently dropped")
-			userValues, ok := spec["user_values"].([]any)
-			Expect(ok).To(BeTrue(), "spec.user_values should be an array")
-			Expect(userValues).To(HaveLen(2))
-
-			for i, uv := range userValues {
-				uvMap, ok := uv.(map[string]any)
-				Expect(ok).To(BeTrue())
-				Expect(uvMap).To(HaveKey("resource"),
+			for i, uv := range receivedBody.Spec.UserValues {
+				Expect(uv.Resource).To(Equal("main"),
 					"user_values[%d].resource must not be silently dropped", i)
-				Expect(uvMap["resource"]).To(Equal("main"))
 			}
 		})
 	})

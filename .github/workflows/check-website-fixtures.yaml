@@ -1,12 +1,13 @@
 name: Check website fixtures
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - testdata/website/**
+      - hack/check-website-fixtures.sh
   schedule:
-    - cron: "0 8 * * 1" # Weekly Monday 08:00 UTC
+    - cron: "0 8 * * 1" # Weekly Monday 08:00 UTC — hard-fails on fetch errors
 
 jobs:
   check-fixtures:

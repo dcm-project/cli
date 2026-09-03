@@ -1,0 +1,19 @@
+name: Check website fixtures
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - testdata/website/**
+      - hack/check-website-fixtures.sh
+  schedule:
+    - cron: "0 8 * * 1" # Weekly Monday 08:00 UTC — hard-fails on fetch errors
+
+jobs:
+  check-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify testdata/website/ matches upstream docs
+        run: hack/check-website-fixtures.sh

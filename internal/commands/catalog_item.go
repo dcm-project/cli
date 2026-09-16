@@ -13,24 +13,15 @@ import (
 )
 
 var catalogItemTableDef = &output.TableDef{
-	Headers: []string{"UID", "DISPLAY NAME", "SERVICE TYPE", "CREATED"},
+	Headers: []string{"UID", "DISPLAY NAME", "CREATED"},
 	RowFunc: func(resource any) []string {
 		m, ok := resource.(map[string]any)
 		if !ok {
-			return []string{"", "", "", ""}
-		}
-		var serviceType string
-		if spec, ok := m["spec"].(map[string]any); ok {
-			if resources, ok := spec["resources"].([]any); ok && len(resources) > 0 {
-				if res, ok := resources[0].(map[string]any); ok {
-					serviceType = stringifyValue(res, "service_type")
-				}
-			}
+			return []string{"", "", ""}
 		}
 		return []string{
 			stringifyValue(m, "uid"),
 			stringifyValue(m, "display_name"),
-			serviceType,
 			stringifyValue(m, "create_time"),
 		}
 	},

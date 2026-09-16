@@ -426,28 +426,41 @@ Catalog item file format:
 
 ```yaml
 api_version: v1alpha1
-display_name: "Small Container"
+display_name: "App with Database"
 spec:
-  service_type: container
-  fields:
-    - path: spec.replicas
-      display_name: "Replica Count"
-      editable: true
-      default: "1"
-      validation_schema:
-        type: integer
-        minimum: 1
-        maximum: 10
-    - path: spec.container.image
-      display_name: "Container Image"
-      editable: true
+  resources:
+    - name: app
+      service_type: container
+      fields:
+        - path: replicas
+          display_name: "Replica Count"
+          editable: true
+          default: "1"
+          validation_schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+        - path: image
+          display_name: "Container Image"
+          editable: true
+    - name: db
+      service_type: database
+      requires_resources:
+        - app
+      fields:
+        - path: engine
+          editable: false
+          default: "postgres"
+        - path: version
+          editable: false
+          default: "16"
 ```
 
 Example output (table):
 
 ```
-ID                UID                                   DISPLAY NAME      CREATED
-my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  Small Container   2026-03-09T10:00:00Z
+ID                UID                                   DISPLAY NAME        CREATED
+my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  App with Database   2026-03-09T10:00:00Z
 ```
 
 #### `dcm catalog item list`
@@ -513,9 +526,11 @@ display_name: "My App Instance"
 spec:
   catalog_item_id: my-catalog-item
   user_values:
-    - path: spec.replicas
+    - resource: spec.replicas
+      path: replicas
       value: "3"
-    - path: spec.container.image
+    - resource: app
+      path: spec.container.image
       value: "nginx:latest"
 ```
 
@@ -1019,7 +1034,7 @@ dcm policy list
 dcm catalog instance create --from-file instance.yaml
   │
   ├─▶ Read and parse instance.yaml
-  │     Contains: catalog_item_id, user_values
+  │     Contains: catalog_item_id, user_values (each with resource, path, value)
   ├─▶ POST /api/v1alpha1/catalog-item-instances
   ├─▶ Display created instance
   └─▶ Exit 0

@@ -86,6 +86,15 @@ var _ = Describe("Catalog Item Commands", func() {
 				var body map[string]any
 				Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
 				Expect(body["display_name"]).To(Equal("Small Container"))
+				spec, ok := body["spec"].(map[string]any)
+				Expect(ok).To(BeTrue(), "request body must include spec")
+				resources, ok := spec["resources"].([]any)
+				Expect(ok).To(BeTrue(), "request body must include spec.resources")
+				Expect(resources).To(HaveLen(1))
+				resource, ok := resources[0].(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(resource["name"]).To(Equal("main"))
+				Expect(resource["service_type"]).To(Equal("container"))
 
 				writeJSONResponse(w, http.StatusCreated, sampleCatalogItemResponse())
 			}))

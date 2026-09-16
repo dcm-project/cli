@@ -82,11 +82,22 @@ var _ = Describe("Catalog Instance Commands", func() {
 				var body map[string]any
 				Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
 				Expect(body["display_name"]).To(Equal("My App Instance"))
+				spec, ok := body["spec"].(map[string]any)
+				Expect(ok).To(BeTrue(), "request body must include spec")
+				Expect(spec["catalog_item_id"]).To(Equal("my-catalog-item"))
+				userValues, ok := spec["user_values"].([]any)
+				Expect(ok).To(BeTrue(), "request body must include spec.user_values")
+				Expect(userValues).To(HaveLen(1))
+				userValue, ok := userValues[0].(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(userValue["resource"]).To(Equal("app"))
+				Expect(userValue["path"]).To(Equal("vcpu.count"))
+				Expect(userValue["value"]).To(Equal("2"))
 
 				writeJSONResponse(w, http.StatusCreated, sampleInstanceResponse())
 			}))
 
-			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values: []\n", ".yaml")
+			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values:\n    - resource: app\n      path: vcpu.count\n      value: \"2\"\n", ".yaml")
 
 			err := executeCommand("catalog", "instance", "create", "--from-file", yamlFile)
 			Expect(err).NotTo(HaveOccurred())
@@ -106,7 +117,7 @@ var _ = Describe("Catalog Instance Commands", func() {
 				writeJSONResponse(w, http.StatusCreated, sampleInstanceResponse())
 			}))
 
-			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values: []\n", ".yaml")
+			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values:\n    - resource: app\n      path: vcpu.count\n      value: \"2\"\n", ".yaml")
 
 			err := executeCommand("catalog", "instance", "create", "--from-file", yamlFile, "--id", "my-instance")
 			Expect(err).NotTo(HaveOccurred())

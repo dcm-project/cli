@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/coreos/go-oidc/v3 v3.20.0
-	github.com/dcm-project/control-plane v0.0.0-20260617094433-e4374fc25292
+	github.com/dcm-project/control-plane v0.0.0-20260814135831-7c173134e932
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.41.0
 	github.com/spf13/cobra v1.10.2

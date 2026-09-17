@@ -6,7 +6,7 @@ LDFLAGS = -X github.com/dcm-project/cli/internal/version.Version=$(VERSION) \
           -X github.com/dcm-project/cli/internal/version.Commit=$(COMMIT) \
           -X github.com/dcm-project/cli/internal/version.BuildTime=$(BUILD_TIME)
 
-.PHONY: build test test-e2e fmt vet lint clean tidy
+.PHONY: build test test-e2e fmt vet lint clean tidy check-fixtures
 
 build: tidy
 	go build -ldflags "$(LDFLAGS)" -o bin/dcm ./cmd/dcm
@@ -31,3 +31,6 @@ clean:
 
 tidy:
 	go mod tidy
+
+check-fixtures:
+	hack/check-website-fixtures.sh

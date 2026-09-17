@@ -42,6 +42,9 @@ make tidy
 
 # Run E2E tests (requires live DCM stack)
 make test-e2e
+
+# Check website fixture drift
+make check-fixtures
 ```
 
 ## Architecture
@@ -82,6 +85,11 @@ make test-e2e
 
 - **test/e2e/**: E2E tests with `e2e` build tag (`//go:build e2e`)
 
+- **testdata/website/**: YAML fixtures mirroring the Getting Started tutorial examples from `dcm-project.github.io`. Used by contract tests to validate CLI serialization of documented schemas.
+
+- **hack/**: Development scripts
+  - `check-website-fixtures.sh`: Detects drift between local `testdata/website/` fixtures and upstream docs. Supports `--update` to refresh fixtures. Exit codes: 0 success, 1 drift/runtime error, 2 usage error.
+
 - **tools.go**: Build tool dependencies (ginkgo)
 
 ## Testing
@@ -102,7 +110,7 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 4. **Output formatting**: All commands support `--output/-o` flag with `table` (default), `json`, and `yaml` formats.
 
-5. **Input files**: Resource creation and updates use `--from-file` flag accepting YAML or JSON files.
+5. **Input files**: Resource creation and updates use `--from-file` flag accepting YAML or JSON files. Catalog items use the multi-resource schema (`spec.resources[]` with named resources, each containing `service_type` and `fields`). Catalog instances reference resources via `user_values[].resource`.
 
 6. **Error handling**: API errors follow RFC 7807 Problem Details format. Exit code 0 for success, 1 for runtime errors, 2 for usage errors.
 

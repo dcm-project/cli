@@ -432,17 +432,17 @@ spec:
     - name: app
       service_type: container
       fields:
-        - path: replicas
-          display_name: "Replica Count"
+        - path: image.reference
+          display_name: "Container Image"
+          editable: true
+        - path: resources.cpu.min
+          display_name: "CPU Min"
           editable: true
           default: "1"
           validation_schema:
             type: integer
             minimum: 1
-            maximum: 10
-        - path: image
-          display_name: "Container Image"
-          editable: true
+            maximum: 10          
     - name: db
       service_type: database
       requires_resources:
@@ -526,12 +526,12 @@ display_name: "My App Instance"
 spec:
   catalog_item_id: my-catalog-item
   user_values:
-    - resource: spec.replicas
-      path: replicas
-      value: "3"
     - resource: app
-      path: spec.container.image
+      path: image.reference
       value: "nginx:latest"
+    - resource: app
+      path: resources.cpu.min
+      value: "2"
 ```
 
 Example output (table):

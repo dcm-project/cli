@@ -1,0 +1,14 @@
+api_version: v1alpha1
+display_name: "My Dev VM"
+spec:
+  catalog_item_id: small-vm
+  user_values:
+    - resource: main
+      path: metadata
+      value:
+        name: "small-vm"
+        labels:
+          env: "dev"
+    - resource: main
+      path: vcpu.count
+      value: 1

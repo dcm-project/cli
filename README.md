@@ -422,7 +422,7 @@ dcm catalog item create --from-file item.yaml
 dcm catalog item create --from-file item.yaml --id my-catalog-item
 ```
 
-Catalog item file format:
+Catalog item file format (multi-resource schema):
 
 ```yaml
 api_version: v1alpha1
@@ -518,13 +518,13 @@ Create a new catalog item instance.
 dcm catalog instance create --from-file instance.yaml
 ```
 
-Instance file format:
+Instance file format (multi-resource schema):
 
 ```yaml
 api_version: v1alpha1
-display_name: "My App Instance"
+display_name: "My Dev VM"
 spec:
-  catalog_item_id: my-catalog-item
+  catalog_item_id: small-vm
   user_values:
     - resource: app
       path: image.reference

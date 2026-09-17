@@ -440,9 +440,8 @@ spec:
           editable: true
           default: "1"
           validation_schema:
-            type: integer
-            minimum: 1
-            maximum: 10          
+            type: string
+            pattern: '^[1-9][0-9]*m?$' 
     - name: db
       service_type: database
       requires_resources:

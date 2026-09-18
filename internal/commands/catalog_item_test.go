@@ -31,6 +31,48 @@ func sampleCatalogItemResponse() map[string]any {
 	}
 }
 
+// sampleTwoResourceCatalogItemResponse returns a catalog item with two distinct resources.
+func sampleTwoResourceCatalogItemResponse() map[string]any {
+	return map[string]any{
+		"path":         "catalog-items/my-catalog-item",
+		"uid":          "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+		"display_name": "App with Database",
+		"create_time":  "2026-03-09T10:00:00Z",
+		"spec": map[string]any{
+			"resources": []any{
+				map[string]any{
+					"name":         "app",
+					"service_type": "container",
+					"fields": []any{
+						map[string]any{
+							"path":    "image.reference",
+							"default": "nginx:latest",
+						},
+					},
+				},
+				map[string]any{
+					"name":               "db",
+					"service_type":       "database",
+					"requires_resources": []any{"app"},
+					"fields": []any{
+						map[string]any{
+							"path":    "engine",
+							"default": "postgres",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// writeTempJSON marshals v to JSON and writes it to a temporary file.
+func writeTempJSON(v any) string {
+	data, err := json.Marshal(v)
+	Expect(err).NotTo(HaveOccurred())
+	return writeTempFile(string(data), ".json")
+}
+
 // emptyCatalogItemListResponse returns a standard empty catalog item list response body.
 func emptyCatalogItemListResponse() map[string]any {
 	return map[string]any{
@@ -86,6 +128,15 @@ var _ = Describe("Catalog Item Commands", func() {
 				var body map[string]any
 				Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
 				Expect(body["display_name"]).To(Equal("Small Container"))
+				spec, ok := body["spec"].(map[string]any)
+				Expect(ok).To(BeTrue(), "request body must include spec")
+				resources, ok := spec["resources"].([]any)
+				Expect(ok).To(BeTrue(), "request body must include spec.resources")
+				Expect(resources).To(HaveLen(1))
+				resource, ok := resources[0].(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(resource["name"]).To(Equal("main"))
+				Expect(resource["service_type"]).To(Equal("container"))
 
 				writeJSONResponse(w, http.StatusCreated, sampleCatalogItemResponse())
 			}))
@@ -290,11 +341,9 @@ var _ = Describe("Catalog Item Commands", func() {
 			out := outBuf.String()
 			Expect(out).To(ContainSubstring("UID"))
 			Expect(out).To(ContainSubstring("DISPLAY NAME"))
-			Expect(out).To(ContainSubstring("SERVICE TYPE"))
 			Expect(out).To(ContainSubstring("CREATED"))
 			Expect(out).To(ContainSubstring("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
 			Expect(out).To(ContainSubstring("Small Container"))
-			Expect(out).To(ContainSubstring("container"))
 			Expect(out).To(ContainSubstring("2026-03-09T10:00:00Z"))
 		})
 	})
@@ -340,5 +389,29 @@ var _ = Describe("Catalog Item Commands", func() {
 			Expect(errors.As(err, &fmtErr)).To(BeTrue())
 			Expect(errBuf.String()).To(ContainSubstring("NOT_FOUND"))
 		})
+	})
+
+	It("should create a catalog item with multiple resources", func() {
+		expected := sampleTwoResourceCatalogItemResponse()
+
+		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			Expect(r.Method).To(Equal(http.MethodPost))
+			Expect(r.URL.Path).To(Equal("/api/v1alpha1/catalog-items"))
+
+			var body map[string]any
+			Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
+			Expect(body["display_name"]).To(Equal(expected["display_name"]))
+			Expect(body["spec"]).To(Equal(expected["spec"]))
+
+			writeJSONResponse(w, http.StatusCreated, expected)
+		}))
+
+		inputFile := writeTempJSON(map[string]any{
+			"display_name": expected["display_name"],
+			"spec":         expected["spec"],
+		})
+
+		err := executeCommand("catalog", "item", "create", "--from-file", inputFile)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })

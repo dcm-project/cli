@@ -27,6 +27,32 @@ func sampleInstanceResponse() map[string]any {
 	}
 }
 
+// sampleTwoResourceInstanceResponse returns an instance with user_values for two resources.
+func sampleTwoResourceInstanceResponse() map[string]any {
+	return map[string]any{
+		"path":         "catalog-item-instances/my-instance",
+		"uid":          "c3d4e5f6-a7b8-9012-cdef-123456789012",
+		"display_name": "My App Instance",
+		"create_time":  "2026-03-09T10:00:00Z",
+		"resource_id":  "res-abc123",
+		"spec": map[string]any{
+			"catalog_item_id": "my-catalog-item",
+			"user_values": []any{
+				map[string]any{
+					"resource": "app",
+					"path":     "image.reference",
+					"value":    "nginx:latest",
+				},
+				map[string]any{
+					"resource": "db",
+					"path":     "engine",
+					"value":    "postgres",
+				},
+			},
+		},
+	}
+}
+
 // emptyInstanceListResponse returns a standard empty instance list response body.
 func emptyInstanceListResponse() map[string]any {
 	return map[string]any{
@@ -82,11 +108,22 @@ var _ = Describe("Catalog Instance Commands", func() {
 				var body map[string]any
 				Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
 				Expect(body["display_name"]).To(Equal("My App Instance"))
+				spec, ok := body["spec"].(map[string]any)
+				Expect(ok).To(BeTrue(), "request body must include spec")
+				Expect(spec["catalog_item_id"]).To(Equal("my-catalog-item"))
+				userValues, ok := spec["user_values"].([]any)
+				Expect(ok).To(BeTrue(), "request body must include spec.user_values")
+				Expect(userValues).To(HaveLen(1))
+				userValue, ok := userValues[0].(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(userValue["resource"]).To(Equal("app"))
+				Expect(userValue["path"]).To(Equal("vcpu.count"))
+				Expect(userValue["value"]).To(Equal("2"))
 
 				writeJSONResponse(w, http.StatusCreated, sampleInstanceResponse())
 			}))
 
-			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values: []\n", ".yaml")
+			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values:\n    - resource: app\n      path: vcpu.count\n      value: \"2\"\n", ".yaml")
 
 			err := executeCommand("catalog", "instance", "create", "--from-file", yamlFile)
 			Expect(err).NotTo(HaveOccurred())
@@ -106,7 +143,7 @@ var _ = Describe("Catalog Instance Commands", func() {
 				writeJSONResponse(w, http.StatusCreated, sampleInstanceResponse())
 			}))
 
-			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values: []\n", ".yaml")
+			yamlFile := writeTempFile("display_name: My App Instance\napi_version: v1alpha1\nspec:\n  catalog_item_id: my-catalog-item\n  user_values:\n    - resource: app\n      path: vcpu.count\n      value: \"2\"\n", ".yaml")
 
 			err := executeCommand("catalog", "instance", "create", "--from-file", yamlFile, "--id", "my-instance")
 			Expect(err).NotTo(HaveOccurred())
@@ -400,5 +437,29 @@ var _ = Describe("Catalog Instance Commands", func() {
 			Expect(errors.As(err, &fmtErr)).To(BeTrue())
 			Expect(errBuf.String()).To(ContainSubstring("NOT_FOUND"))
 		})
+	})
+
+	It("should create an instance with user_values for multiple resources", func() {
+		expected := sampleTwoResourceInstanceResponse()
+
+		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			Expect(r.Method).To(Equal(http.MethodPost))
+			Expect(r.URL.Path).To(Equal("/api/v1alpha1/catalog-item-instances"))
+
+			var body map[string]any
+			Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
+			Expect(body["display_name"]).To(Equal(expected["display_name"]))
+			Expect(body["spec"]).To(Equal(expected["spec"]))
+
+			writeJSONResponse(w, http.StatusCreated, expected)
+		}))
+
+		inputFile := writeTempJSON(map[string]any{
+			"display_name": expected["display_name"],
+			"spec":         expected["spec"],
+		})
+
+		err := executeCommand("catalog", "instance", "create", "--from-file", inputFile)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })

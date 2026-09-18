@@ -426,35 +426,40 @@ Catalog item file format (multi-resource schema):
 
 ```yaml
 api_version: v1alpha1
-display_name: "Small VM"
+display_name: "App with Database"
 spec:
   resources:
-    - name: main
-      service_type: vm
+    - name: app
+      service_type: container
       fields:
-        - path: metadata
+        - path: image.reference
+          display_name: "Container Image"
           editable: true
-        - path: vcpu.count
-          display_name: "CPU Count"
+        - path: resources.cpu.min
+          display_name: "CPU Min"
           editable: true
-          default: 2
+          default: "1"
           validation_schema:
-            type: integer
-            minimum: 1
-            maximum: 4
-        - path: memory.size
-          display_name: "Memory (GB)"
+            type: string
+            pattern: '^[1-9][0-9]*m?$'
+    - name: db
+      service_type: database
+      requires_resources:
+        - app
+      fields:
+        - path: engine
           editable: false
-          default: "2GB"
+          default: "postgres"
+        - path: version
+          editable: false
+          default: "16"
 ```
-
-Each catalog item defines one or more named resources under `spec.resources`. Each resource specifies its `service_type` and the `fields` available for customization.
 
 Example output (table):
 
 ```
-ID                UID                                   DISPLAY NAME      CREATED
-my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  Small Container   2026-03-09T10:00:00Z
+UID                                   DISPLAY NAME        CREATED
+b2c3d4e5-f6a7-8901-bcde-f12345678901  App with Database   2026-03-09T10:00:00Z
 ```
 
 #### `dcm catalog item list`
@@ -520,18 +525,13 @@ display_name: "My Dev VM"
 spec:
   catalog_item_id: small-vm
   user_values:
-    - resource: main
-      path: metadata
-      value:
-        name: "small-vm"
-        labels:
-          env: "dev"
-    - resource: main
-      path: vcpu.count
-      value: 1
+    - resource: app
+      path: image.reference
+      value: "nginx:latest"
+    - resource: app
+      path: resources.cpu.min
+      value: "2"
 ```
-
-Each `user_values` entry includes a `resource` field that identifies which named resource (from the catalog item's `spec.resources`) the value applies to.
 
 Example output (table):
 
@@ -1033,7 +1033,7 @@ dcm policy list
 dcm catalog instance create --from-file instance.yaml
   │
   ├─▶ Read and parse instance.yaml
-  │     Contains: catalog_item_id, user_values
+  │     Contains: catalog_item_id, user_values (each with resource, path, value)
   ├─▶ POST /api/v1alpha1/catalog-item-instances
   ├─▶ Display created instance
   └─▶ Exit 0

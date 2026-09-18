@@ -441,7 +441,7 @@ spec:
           default: "1"
           validation_schema:
             type: string
-            pattern: '^[1-9][0-9]*m?$' 
+            pattern: '^[1-9][0-9]*m?$'
     - name: db
       service_type: database
       requires_resources:
@@ -458,8 +458,8 @@ spec:
 Example output (table):
 
 ```
-ID                UID                                   DISPLAY NAME        CREATED
-my-catalog-item   b2c3d4e5-f6a7-8901-bcde-f12345678901  App with Database   2026-03-09T10:00:00Z
+UID                                   DISPLAY NAME        CREATED
+b2c3d4e5-f6a7-8901-bcde-f12345678901  App with Database   2026-03-09T10:00:00Z
 ```
 
 #### `dcm catalog item list`

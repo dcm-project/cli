@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -107,6 +108,20 @@ var _ = Describe("Documentation Contract", func() {
 				Expect(uv.Resource).To(Equal("main"),
 					"user_values[%d].resource must not be silently dropped", i)
 			}
+		})
+	})
+
+	Describe("Catalog Item table output", func() {
+		It("should emit UID, DISPLAY NAME, CREATED without an ID column", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				writeJSONResponse(w, http.StatusOK, sampleCatalogItemResponse())
+			}))
+
+			err := executeCommand("catalog", "item", "get", "my-catalog-item")
+			Expect(err).NotTo(HaveOccurred())
+
+			header := strings.Split(strings.TrimSpace(outBuf.String()), "\n")[0]
+			Expect(header).To(MatchRegexp(`^UID\s+DISPLAY NAME\s+CREATED\s*$`))
 		})
 	})
 })

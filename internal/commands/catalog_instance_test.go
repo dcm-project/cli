@@ -173,6 +173,30 @@ var _ = Describe("Catalog Instance Commands", func() {
 			Expect(errors.As(err, &fmtErr)).To(BeTrue())
 			Expect(errBuf.String()).To(ContainSubstring("INTERNAL"))
 		})
+
+		It("should create an instance with user_values for multiple resources", func() {
+			expected := sampleTwoResourceInstanceResponse()
+
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.Method).To(Equal(http.MethodPost))
+				Expect(r.URL.Path).To(Equal("/api/v1alpha1/catalog-item-instances"))
+
+				var body map[string]any
+				Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
+				Expect(body["display_name"]).To(Equal(expected["display_name"]))
+				Expect(body["spec"]).To(Equal(expected["spec"]))
+
+				writeJSONResponse(w, http.StatusCreated, expected)
+			}))
+
+			inputFile := writeTempJSON(map[string]any{
+				"display_name": expected["display_name"],
+				"spec":         expected["spec"],
+			})
+
+			err := executeCommand("catalog", "instance", "create", "--from-file", inputFile)
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 
 	Describe("list", func() {
@@ -437,29 +461,5 @@ var _ = Describe("Catalog Instance Commands", func() {
 			Expect(errors.As(err, &fmtErr)).To(BeTrue())
 			Expect(errBuf.String()).To(ContainSubstring("NOT_FOUND"))
 		})
-	})
-
-	It("should create an instance with user_values for multiple resources", func() {
-		expected := sampleTwoResourceInstanceResponse()
-
-		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			Expect(r.Method).To(Equal(http.MethodPost))
-			Expect(r.URL.Path).To(Equal("/api/v1alpha1/catalog-item-instances"))
-
-			var body map[string]any
-			Expect(json.NewDecoder(r.Body).Decode(&body)).To(Succeed())
-			Expect(body["display_name"]).To(Equal(expected["display_name"]))
-			Expect(body["spec"]).To(Equal(expected["spec"]))
-
-			writeJSONResponse(w, http.StatusCreated, expected)
-		}))
-
-		inputFile := writeTempJSON(map[string]any{
-			"display_name": expected["display_name"],
-			"spec":         expected["spec"],
-		})
-
-		err := executeCommand("catalog", "instance", "create", "--from-file", inputFile)
-		Expect(err).NotTo(HaveOccurred())
 	})
 })

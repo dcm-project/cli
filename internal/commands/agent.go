@@ -52,6 +52,9 @@ func newAgentListCommand() *cobra.Command {
 			if pageSize, _ := cmd.Flags().GetInt32("page-size"); pageSize > 0 {
 				listCmd += fmt.Sprintf(" --page-size %d", pageSize)
 			}
+			if healthStatus, _ := cmd.Flags().GetString("health-status"); healthStatus != "" {
+				listCmd += fmt.Sprintf(" --health-status %s", healthStatus)
+			}
 
 			formatter, err := newFormatter(cmd, agentTableDef, listCmd)
 			if err != nil {

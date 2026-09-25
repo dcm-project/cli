@@ -123,6 +123,21 @@ var _ = Describe("Agent Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("should include --health-status in the next-page command", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.URL.Query().Get("health_status")).To(Equal("ready"))
+
+				writeJSONResponse(w, http.StatusOK, map[string]any{
+					"agents":          []any{sampleAgentResponse()},
+					"next_page_token": "page-2",
+				})
+			}))
+
+			err := executeCommand("agent", "list", "--health-status", "ready")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(outBuf.String()).To(ContainSubstring("Next page: dcm agent list --health-status ready --page-token page-2"))
+		})
+
 		It("should display empty result for empty list", func() {
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				writeJSONResponse(w, http.StatusOK, emptyAgentListResponse())

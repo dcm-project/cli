@@ -68,9 +68,13 @@ func newSPResourceListCommand() *cobra.Command {
 			if pageSize, _ := cmd.Flags().GetInt32("page-size"); pageSize > 0 {
 				listCmd += fmt.Sprintf(" --page-size %d", pageSize)
 			}
-
+			if agentName, _ := cmd.Flags().GetString("agent-name"); agentName != "" {
+				listCmd += fmt.Sprintf(" --agent-name %s", agentName)
+			}
 			showDeleted, _ := cmd.Flags().GetBool("show-deleted")
-
+			if showDeleted {
+				listCmd += " --show-deleted"
+			}
 			tableDef := spResourceTableDef
 			if showDeleted {
 				tableDef = spResourceWithDeletedTableDef

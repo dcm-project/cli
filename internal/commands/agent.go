@@ -5,60 +5,60 @@ import (
 	"fmt"
 	"net/http"
 
-	spmapi "github.com/dcm-project/control-plane/api/sp/v1alpha1/provider"
+	agentapi "github.com/dcm-project/control-plane/api/agent/v1alpha1"
 
 	"github.com/dcm-project/cli/internal/config"
 	"github.com/dcm-project/cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
-var spProviderTableDef = &output.TableDef{
-	Headers: []string{"ID", "NAME", "SERVICE TYPE", "HEALTH", "CREATED"},
+var agentTableDef = &output.TableDef{
+	Headers: []string{"ID", "NAME", "ENVIRONMENT", "HEALTH", "CREATED"},
 	RowFunc: func(resource any) []string {
 		m, ok := resource.(map[string]any)
 		if !ok {
 			return []string{"", "", "", "", ""}
 		}
 		return []string{
-			stringifyValue(m, "id"),
+			stringifyValue(m, "agent_id"),
 			stringifyValue(m, "name"),
-			stringifyValue(m, "service_type"),
+			stringifyValue(m, "environment"),
 			stringifyValue(m, "health_status"),
 			stringifyValue(m, "create_time"),
 		}
 	},
 }
 
-func newSPProviderCommand() *cobra.Command {
+func newAgentCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "provider",
-		Short: "Manage SP providers",
+		Use:   "agent",
+		Short: "Manage environment agents",
 	}
 
-	cmd.AddCommand(newSPProviderListCommand())
-	cmd.AddCommand(newSPProviderGetCommand())
+	cmd.AddCommand(newAgentListCommand())
+	cmd.AddCommand(newAgentGetCommand())
 
 	return cmd
 }
 
-func newSPProviderListCommand() *cobra.Command {
+func newAgentListCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List SP providers",
+		Short: "List environment agents",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg := config.FromCommand(cmd)
 
-			listCmd := "sp provider list"
+			listCmd := "agent list"
 			if pageSize, _ := cmd.Flags().GetInt32("page-size"); pageSize > 0 {
 				listCmd += fmt.Sprintf(" --page-size %d", pageSize)
 			}
 
-			formatter, err := newFormatter(cmd, spProviderTableDef, listCmd)
+			formatter, err := newFormatter(cmd, agentTableDef, listCmd)
 			if err != nil {
 				return err
 			}
 
-			params := &spmapi.ListProvidersParams{}
+			params := &agentapi.ListAgentsParams{}
 			if pageSize, _ := cmd.Flags().GetInt32("page-size"); pageSize > 0 {
 				maxPageSize := int(pageSize)
 				params.MaxPageSize = &maxPageSize
@@ -66,19 +66,20 @@ func newSPProviderListCommand() *cobra.Command {
 			if pageToken, _ := cmd.Flags().GetString("page-token"); pageToken != "" {
 				params.PageToken = &pageToken
 			}
-			if providerType, _ := cmd.Flags().GetString("type"); providerType != "" {
-				params.Type = &providerType
+			if healthStatus, _ := cmd.Flags().GetString("health-status"); healthStatus != "" {
+				status := agentapi.ListAgentsParamsHealthStatus(healthStatus)
+				params.HealthStatus = &status
 			}
 
-			client, err := newSPProviderClient(cfg)
+			client, err := newAgentClient(cfg)
 			if err != nil {
-				return fmt.Errorf("creating SP provider client: %w", err)
+				return fmt.Errorf("creating agent client: %w", err)
 			}
 
 			ctx, cancel := requestContext(cmd)
 			defer cancel()
 
-			resp, err := client.ListProviders(ctx, params)
+			resp, err := client.ListAgents(ctx, params)
 			if err != nil {
 				return connectionError(err, cfg)
 			}
@@ -89,15 +90,15 @@ func newSPProviderListCommand() *cobra.Command {
 			}
 
 			var listResp struct {
-				Providers     []map[string]any `json:"providers"`
+				Agents        []map[string]any `json:"agents"`
 				NextPageToken string           `json:"next_page_token"`
 			}
 			if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
 				return fmt.Errorf("parsing response: %w", err)
 			}
 
-			resources := make([]any, len(listResp.Providers))
-			for i, r := range listResp.Providers {
+			resources := make([]any, len(listResp.Agents))
+			for i, r := range listResp.Agents {
 				resources[i] = r
 			}
 
@@ -107,32 +108,32 @@ func newSPProviderListCommand() *cobra.Command {
 
 	cmd.Flags().Int32("page-size", 0, "Maximum results per page")
 	cmd.Flags().String("page-token", "", "Token for next page")
-	cmd.Flags().String("type", "", "Filter by service type")
+	cmd.Flags().String("health-status", "", "Filter by health status (ready, congested, unavailable)")
 
 	return cmd
 }
 
-func newSPProviderGetCommand() *cobra.Command {
+func newAgentGetCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "get PROVIDER_ID",
-		Short: "Get an SP provider by ID",
+		Use:   "get AGENT_ID",
+		Short: "Get an environment agent by ID",
 		Args:  ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromCommand(cmd)
-			formatter, err := newFormatter(cmd, spProviderTableDef, "sp provider get")
+			formatter, err := newFormatter(cmd, agentTableDef, "agent get")
 			if err != nil {
 				return err
 			}
 
-			client, err := newSPProviderClient(cfg)
+			client, err := newAgentClient(cfg)
 			if err != nil {
-				return fmt.Errorf("creating SP provider client: %w", err)
+				return fmt.Errorf("creating agent client: %w", err)
 			}
 
 			ctx, cancel := requestContext(cmd)
 			defer cancel()
 
-			resp, err := client.GetProvider(ctx, args[0])
+			resp, err := client.GetAgent(ctx, args[0])
 			if err != nil {
 				return connectionError(err, cfg)
 			}

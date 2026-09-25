@@ -16,12 +16,12 @@ import (
 // sampleSPResourceResponse returns a sample SP resource (service type instance) JSON response body.
 func sampleSPResourceResponse() map[string]any {
 	return map[string]any{
-		"id":            "my-instance",
-		"path":          "service-type-instances/my-instance",
-		"provider_name": "kubevirt-123",
-		"status":        "READY",
-		"create_time":   "2026-03-09T10:00:00Z",
-		"spec":          map[string]any{},
+		"id":          "my-instance",
+		"path":        "service-type-instances/my-instance",
+		"agent_name":  "kubevirt-east",
+		"status":      "READY",
+		"create_time": "2026-03-09T10:00:00Z",
+		"spec":        map[string]any{},
 	}
 }
 
@@ -30,7 +30,7 @@ func sampleDeletedSPResourceResponse() map[string]any {
 	return map[string]any{
 		"id":              "deleted-instance",
 		"path":            "service-type-instances/deleted-instance",
-		"provider_name":   "kubevirt-123",
+		"agent_name":      "kubevirt-east",
 		"status":          "DELETED",
 		"deletion_status": "PENDING",
 		"create_time":     "2026-03-09T10:00:00Z",
@@ -101,7 +101,7 @@ var _ = Describe("SP Resource Commands", func() {
 
 			out := outBuf.String()
 			Expect(out).To(ContainSubstring("my-instance"))
-			Expect(out).To(ContainSubstring("kubevirt-123"))
+			Expect(out).To(ContainSubstring("kubevirt-east"))
 			Expect(out).To(ContainSubstring("READY"))
 		})
 
@@ -129,15 +129,15 @@ var _ = Describe("SP Resource Commands", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		// TC-U123: List SP resources with provider filter
-		It("TC-U123: should pass provider query parameter", func() {
+		// TC-U123: List SP resources with agent-name filter
+		It("TC-U123: should pass agent_name query parameter", func() {
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				Expect(r.URL.Query().Get("provider")).To(Equal("kubevirt-123"))
+				Expect(r.URL.Query().Get("agent_name")).To(Equal("kubevirt-east"))
 
 				writeJSONResponse(w, http.StatusOK, emptySPResourceListResponse())
 			}))
 
-			err := executeCommand("sp", "resource", "list", "--provider", "kubevirt-123")
+			err := executeCommand("sp", "resource", "list", "--agent-name", "kubevirt-east")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -192,7 +192,7 @@ var _ = Describe("SP Resource Commands", func() {
 			out := outBuf.String()
 			// Table output should have headers but no data rows
 			Expect(out).To(ContainSubstring("ID"))
-			Expect(out).To(ContainSubstring("PROVIDER"))
+			Expect(out).To(ContainSubstring("AGENT"))
 			Expect(out).NotTo(ContainSubstring("kubevirt"))
 		})
 
@@ -227,7 +227,7 @@ var _ = Describe("SP Resource Commands", func() {
 
 			out := outBuf.String()
 			Expect(out).To(ContainSubstring("my-instance"))
-			Expect(out).To(ContainSubstring("kubevirt-123"))
+			Expect(out).To(ContainSubstring("kubevirt-east"))
 			Expect(out).To(ContainSubstring("READY"))
 		})
 
@@ -302,11 +302,11 @@ var _ = Describe("SP Resource Commands", func() {
 
 			out := outBuf.String()
 			Expect(out).To(ContainSubstring("ID"))
-			Expect(out).To(ContainSubstring("PROVIDER"))
+			Expect(out).To(ContainSubstring("AGENT"))
 			Expect(out).To(ContainSubstring("STATUS"))
 			Expect(out).To(ContainSubstring("CREATED"))
 			Expect(out).To(ContainSubstring("my-instance"))
-			Expect(out).To(ContainSubstring("kubevirt-123"))
+			Expect(out).To(ContainSubstring("kubevirt-east"))
 			Expect(out).To(ContainSubstring("READY"))
 			Expect(out).To(ContainSubstring("2026-03-09T10:00:00Z"))
 		})

@@ -11,7 +11,7 @@ Generated client packages:
 - [pkg/policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client) — Policy Manager
 - [pkg/catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client) — Catalog Manager
 - [pkg/sp/client/resource_manager](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/resource_manager) — SP Resource Manager
-- [pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider) — SP Manager
+- [pkg/agent/client](https://github.com/dcm-project/control-plane/tree/main/pkg/agent/client) — Agent Manager
 
 ## Build and Development Commands
 
@@ -77,7 +77,7 @@ make check-fixtures
   - `catalog_item.go`: Catalog item create/list/get/delete commands
   - `catalog_instance.go`: Catalog instance create/list/get/delete/rehydrate commands
   - `sp_resource.go`: SP resource list/get commands
-  - `sp_provider.go`: SP provider list/get commands
+  - `agent.go`: Environment agent list/get commands
   - `completion.go`: Shell completion
   - `version.go`: Version display command
 
@@ -100,7 +100,7 @@ E2E tests live under `test/e2e/` and use the `e2e` build tag (`//go:build e2e`).
 
 ## Key Conventions
 
-1. **Cobra commands**: Each resource group (policy, catalog service-type, catalog item, catalog instance, sp resource, sp provider) has its own file with subcommands. Policy supports create/list/get/update/delete. Catalog item and catalog instance do not support update. SP commands are read-only (list/get).
+1. **Cobra commands**: Each resource group (policy, catalog service-type, catalog item, catalog instance, sp resource, agent) has its own file with subcommands. Policy supports create/list/get/update/delete. Catalog item and catalog instance do not support update. SP resource and agent commands are read-only (list/get).
 
 2. **Generated clients**: Import from `github.com/dcm-project/control-plane/pkg/...` (see links in Project Overview). Client constructors live in `helpers.go`. No hand-written HTTP client code.
 

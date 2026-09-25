@@ -13,7 +13,7 @@ import (
 )
 
 var spResourceTableDef = &output.TableDef{
-	Headers: []string{"ID", "PROVIDER", "STATUS", "CREATED"},
+	Headers: []string{"ID", "AGENT", "STATUS", "CREATED"},
 	RowFunc: func(resource any) []string {
 		m, ok := resource.(map[string]any)
 		if !ok {
@@ -21,7 +21,7 @@ var spResourceTableDef = &output.TableDef{
 		}
 		return []string{
 			stringifyValue(m, "id"),
-			stringifyValue(m, "provider_name"),
+			stringifyValue(m, "agent_name"),
 			stringifyValue(m, "status"),
 			stringifyValue(m, "create_time"),
 		}
@@ -29,7 +29,7 @@ var spResourceTableDef = &output.TableDef{
 }
 
 var spResourceWithDeletedTableDef = &output.TableDef{
-	Headers: []string{"ID", "PROVIDER", "STATUS", "DELETION STATUS", "CREATED"},
+	Headers: []string{"ID", "AGENT", "STATUS", "DELETION STATUS", "CREATED"},
 	RowFunc: func(resource any) []string {
 		m, ok := resource.(map[string]any)
 		if !ok {
@@ -37,7 +37,7 @@ var spResourceWithDeletedTableDef = &output.TableDef{
 		}
 		return []string{
 			stringifyValue(m, "id"),
-			stringifyValue(m, "provider_name"),
+			stringifyValue(m, "agent_name"),
 			stringifyValue(m, "status"),
 			stringifyValue(m, "deletion_status"),
 			stringifyValue(m, "create_time"),
@@ -89,8 +89,8 @@ func newSPResourceListCommand() *cobra.Command {
 			if pageToken, _ := cmd.Flags().GetString("page-token"); pageToken != "" {
 				params.PageToken = &pageToken
 			}
-			if provider, _ := cmd.Flags().GetString("provider"); provider != "" {
-				params.Provider = &provider
+			if agentName, _ := cmd.Flags().GetString("agent-name"); agentName != "" {
+				params.AgentName = &agentName
 			}
 			if showDeleted {
 				params.ShowDeleted = &showDeleted
@@ -133,7 +133,7 @@ func newSPResourceListCommand() *cobra.Command {
 
 	cmd.Flags().Int32("page-size", 0, "Maximum results per page")
 	cmd.Flags().String("page-token", "", "Token for next page")
-	cmd.Flags().String("provider", "", "Filter by provider")
+	cmd.Flags().String("agent-name", "", "Filter by agent name")
 	cmd.Flags().Bool("show-deleted", false, "Include soft-deleted resources")
 
 	return cmd

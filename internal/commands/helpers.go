@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	agentclient "github.com/dcm-project/control-plane/pkg/agent/client"
 	catalogclient "github.com/dcm-project/control-plane/pkg/catalog/client"
-	spmclient "github.com/dcm-project/control-plane/pkg/sp/client/provider"
 	sprmclient "github.com/dcm-project/control-plane/pkg/sp/client/resource_manager"
 
 	"github.com/dcm-project/cli/internal/auth"
@@ -24,12 +24,12 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-func newSPProviderClient(cfg *config.Config) (*spmclient.Client, error) {
+func newAgentClient(cfg *config.Config) (*agentclient.Client, error) {
 	httpClient, err := buildHTTPClient(cfg)
 	if err != nil {
 		return nil, err
 	}
-	return spmclient.NewClient(apiBaseURL(cfg), spmclient.WithHTTPClient(httpClient))
+	return agentclient.NewClient(apiBaseURL(cfg), agentclient.WithHTTPClient(httpClient))
 }
 
 func newSPResourceClient(cfg *config.Config) (*sprmclient.Client, error) {

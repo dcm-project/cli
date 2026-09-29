@@ -55,6 +55,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newPolicyCommand())
 	cmd.AddCommand(newCatalogCommand())
 	cmd.AddCommand(newSPCommand())
+	cmd.AddCommand(newAgentCommand())
 	cmd.AddCommand(newVersionCommand())
 	cmd.AddCommand(newCompletionCommand())
 	cmd.AddCommand(newLoginCommand())

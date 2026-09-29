@@ -4,7 +4,7 @@
 
 - **Related Spec:** .ai/specs/dcm-cli.spec.md
 - **Related Plan:** .ai/plan/dcm-cli.plan.md
-- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–120, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-SPR-010–050, REQ-SPP-010–050, REQ-VER-010–030, REQ-CMP-010–060, REQ-XC-ERR-010–070, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
+- **Related Requirements:** REQ-CLI-010–070, REQ-CFG-010–070, REQ-OUT-010–120, REQ-POL-010–130, REQ-CST-010–050, REQ-CIT-010–130, REQ-CIN-010–110, REQ-SPR-010–050, REQ-AGT-010–050, REQ-VER-010–030, REQ-CMP-010–060, REQ-XC-ERR-010–070, REQ-XC-INP-010–030, REQ-XC-CLI-010–050, REQ-XC-PAG-010–030, REQ-XC-TLS-010–080
 - **Framework:** Ginkgo v2 + Gomega
 - **Created:** 2026-03-09
 
@@ -279,7 +279,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** The root command is created
 - **When:** `dcm sp --help` is executed
-- **Then:** Subcommands `resource` and `provider` are listed
+- **Then:** Subcommand `resource` is listed
 
 ### TC-U021: Global flags are registered
 
@@ -933,14 +933,14 @@ test classes. Instead:
 - **When:** `dcm sp resource list --page-size 5` is executed
 - **Then:** The GET request includes `max_page_size=5` as a query parameter
 
-### TC-U123: List SP resources with provider filter
+### TC-U123: List SP resources with agent-name filter
 
 - **Requirement:** REQ-SPR-010
 - **Acceptance Criteria:** AC-SPR-030
 - **Type:** Unit
 - **Given:** A mock server
-- **When:** `dcm sp resource list --provider kubevirt-123` is executed
-- **Then:** The GET request includes `provider=kubevirt-123` as a query parameter
+- **When:** `dcm sp resource list --agent-name kubevirt-east` is executed
+- **Then:** The GET request includes `agent_name=kubevirt-east` as a query parameter
 
 ### TC-U124: Get SP resource
 
@@ -1021,7 +1021,7 @@ test classes. Instead:
 - **Type:** Unit
 - **Given:** A mock server returning an SP resource with all fields populated
 - **When:** `dcm sp resource get my-instance` is executed with `--output table`
-- **Then:** The table output includes columns: ID, PROVIDER, STATUS, CREATED
+- **Then:** The table output includes columns: ID, AGENT, STATUS, CREATED
 
 ---
 
@@ -1095,94 +1095,82 @@ test classes. Instead:
 
 ---
 
-## 10a · SP Provider Commands
+## 10a · Environment Agent Commands
 
-> **Suggested Ginkgo structure:** `Describe("SP Provider Commands")` with
-> nested `Describe` per subcommand. All tests use `net/http/httptest` to mock
-> the generated client's HTTP calls.
+> **Suggested Ginkgo structure:** `Describe("Agent Commands")` with nested
+> `Describe` per subcommand.
 
-### TC-U139: List SP providers
+### TC-U139: List environment agents
 
-- **Requirement:** REQ-SPP-010, REQ-SPP-020
-- **Acceptance Criteria:** AC-SPP-010
+- **Requirement:** REQ-AGT-010, REQ-AGT-020
+- **Acceptance Criteria:** AC-AGT-010
 - **Type:** Unit
-- **Transitively covers:** TC-U149 (generated SP Manager client usage)
-- **Given:** A mock server returning 200 with a list of SP providers
-- **When:** `dcm sp provider list` is executed
-- **Then:** A GET request is sent to `/api/v1alpha1/providers` AND the SP providers are displayed in the configured output format
+- **Given:** A mock server returning 200 with a list of agents
+- **When:** `dcm agent list` is executed
+- **Then:** A GET request is sent to `/api/v1alpha1/agents` AND the agents are displayed
 
-### TC-U140: List SP providers with pagination
+### TC-U140: List agents with pagination
 
-- **Requirement:** REQ-SPP-010
-- **Acceptance Criteria:** AC-SPP-020
+- **Requirement:** REQ-AGT-010
+- **Acceptance Criteria:** AC-AGT-020
 - **Type:** Unit
-- **Transitively covers:** TC-U069 (pagination flags present)
 - **Given:** A mock server
-- **When:** `dcm sp provider list --page-size 5` is executed
+- **When:** `dcm agent list --page-size 5` is executed
 - **Then:** The GET request includes `max_page_size=5` as a query parameter
 
-### TC-U141: List SP providers with type filter
+### TC-U141: List agents with health-status filter
 
-- **Requirement:** REQ-SPP-010
-- **Acceptance Criteria:** AC-SPP-030
+- **Requirement:** REQ-AGT-010
+- **Acceptance Criteria:** AC-AGT-030
 - **Type:** Unit
 - **Given:** A mock server
-- **When:** `dcm sp provider list --type compute` is executed
-- **Then:** The GET request includes `type=compute` as a query parameter
+- **When:** `dcm agent list --health-status ready` is executed
+- **Then:** The GET request includes `health_status=ready` as a query parameter
 
-### TC-U142: Get SP provider
+### TC-U142: Get agent
 
-- **Requirement:** REQ-SPP-030
-- **Acceptance Criteria:** AC-SPP-040
+- **Requirement:** REQ-AGT-030
+- **Acceptance Criteria:** AC-AGT-040
 - **Type:** Unit
-- **Given:** A mock server returning 200 with an SP provider
-- **When:** `dcm sp provider get kubevirt-123` is executed
-- **Then:** A GET request is sent to `/api/v1alpha1/providers/kubevirt-123` AND the SP provider is displayed
+- **Given:** A mock server returning 200 with an agent
+- **When:** `dcm agent get agent-123` is executed
+- **Then:** A GET request is sent to `/api/v1alpha1/agents/agent-123` AND the agent is displayed
 
-### TC-U143: Get SP provider without PROVIDER_ID fails
+### TC-U143: Get agent without AGENT_ID fails
 
-- **Requirement:** REQ-SPP-040
-- **Acceptance Criteria:** AC-SPP-050
+- **Requirement:** REQ-AGT-040
+- **Acceptance Criteria:** AC-AGT-050
 - **Type:** Unit
 - **Given:** No positional argument is provided
-- **When:** `dcm sp provider get` is executed
+- **When:** `dcm agent get` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
 
-### TC-U144: List SP providers returns empty list
+### TC-U144: List agents returns empty list
 
-- **Requirement:** REQ-SPP-010, REQ-SPP-020
-- **Acceptance Criteria:** AC-SPP-060
+- **Requirement:** REQ-AGT-010, REQ-AGT-020
+- **Acceptance Criteria:** AC-AGT-010
 - **Type:** Unit
-- **Given:** A mock server returning 200 with an empty SP provider list (`{"providers":[],"next_page_token":""}`)
-- **When:** `dcm sp provider list` is executed
+- **Given:** A mock server returning 200 with an empty agent list (`{"agents":[],"next_page_token":""}`)
+- **When:** `dcm agent list` is executed
 - **Then:** An empty result is displayed (empty table with headers only for table format, empty array for JSON, empty list for YAML)
 
-### TC-U145: Get non-existent SP provider
+### TC-U145: Get non-existent agent
 
-- **Requirement:** REQ-SPP-030, REQ-XC-ERR-010
-- **Acceptance Criteria:** AC-SPP-070, AC-XC-ERR-010
+- **Requirement:** REQ-AGT-030, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-AGT-040, AC-XC-ERR-010
 - **Type:** Unit
-- **Given:** A mock server returning 404 with RFC 7807 body for provider ID `nonexistent`
-- **When:** `dcm sp provider get nonexistent` is executed
+- **Given:** A mock server returning 404 with RFC 7807 body for agent ID `nonexistent`
+- **When:** `dcm agent get nonexistent` is executed
 - **Then:** The CLI displays the error in the configured output format AND exits with code 1
 
-### TC-U146: SP provider table output columns
+### TC-U146: Agent table output columns
 
 - **Requirement:** REQ-OUT-050
 - **Acceptance Criteria:** AC-OUT-010
 - **Type:** Unit
-- **Given:** A mock server returning an SP provider with all fields populated
-- **When:** `dcm sp provider get kubevirt-123` is executed with `--output table`
-- **Then:** The table output includes columns: ID, NAME, SERVICE TYPE, HEALTH, CREATED
-
-### TC-U147: SP command registers provider subcommand
-
-- **Requirement:** REQ-CLI-030
-- **Acceptance Criteria:** AC-CLI-030
-- **Type:** Unit
-- **Given:** The root command is created
-- **When:** `dcm sp --help` is executed
-- **Then:** Subcommand `provider` is listed alongside `resource`
+- **Given:** A mock server returning an agent with all fields populated
+- **When:** `dcm agent get agent-123` is executed with `--output table`
+- **Then:** The table output includes columns: ID, NAME, ENVIRONMENT, HEALTH, CREATED
 
 ---
 
@@ -1516,24 +1504,24 @@ dedicated test class or `Describe` block.
 - **Then:** The generated SP Resource Manager client is used (verified by mock server receiving correctly structured requests)
 - **Referenced by:** TC-U121 (list), TC-U124 (get)
 
-#### TC-U148: SP Manager client instantiated with correct URL
+#### TC-U148: Agent Manager client instantiated with correct URL
 
 - **Requirement:** REQ-XC-CLI-026, REQ-XC-CLI-030
 - **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
 - **Given:** The control-plane URL is `http://localhost:8080`
-- **When:** The SP Manager client is created
+- **When:** The Agent Manager client is created
 - **Then:** The client base URL is `http://localhost:8080/api/v1alpha1`
-- **Referenced by:** TC-U139 (list SP providers verifies request goes to correct URL path)
+- **Referenced by:** TC-U139 (list agents verifies request goes to correct URL path)
 
-#### TC-U149: SP Manager generated client used for SP provider operations
+#### TC-U149: Agent Manager generated client used for agent operations
 
-- **Requirement:** REQ-XC-CLI-026, REQ-SPP-050
-- **Acceptance Criteria:** AC-SPP-080
+- **Requirement:** REQ-XC-CLI-026, REQ-AGT-050
+- **Acceptance Criteria:** AC-AGT-010
 - **Type:** Unit (structural)
-- **Given:** Any SP provider command is invoked
+- **Given:** Any agent command is invoked
 - **When:** The command communicates with the API
-- **Then:** The generated SP Manager client is used (verified by mock server receiving correctly structured requests)
+- **Then:** The generated Agent Manager client is used (verified by mock server receiving correctly structured requests)
 - **Referenced by:** TC-U139 (list), TC-U142 (get)
 
 #### TC-U068: Request timeout applied to HTTP requests
@@ -1553,10 +1541,10 @@ dedicated test class or `Describe` block.
 - **Requirement:** REQ-XC-PAG-010
 - **Acceptance Criteria:** AC-XC-PAG-010
 - **Type:** Unit
-- **Given:** Any list command (`policy list`, `catalog service-type list`, `catalog item list`, `catalog instance list`, `sp resource list`, `sp provider list`)
+- **Given:** Any list command (`policy list`, `catalog service-type list`, `catalog item list`, `catalog instance list`, `sp resource list`, `agent list`)
 - **When:** `--help` is displayed
 - **Then:** `--page-size` and `--page-token` flags are listed
-- **Referenced by:** TC-U033 (policy list pagination), TC-U043 (service-type list pagination), TC-U074 (instance list pagination), TC-U122 (SP resource list pagination), TC-U140 (SP provider list pagination)
+- **Referenced by:** TC-U033 (policy list pagination), TC-U043 (service-type list pagination), TC-U074 (instance list pagination), TC-U122 (SP resource list pagination), TC-U140 (agent list pagination)
 
 #### TC-U070: Pagination parameters passed as query parameters
 
@@ -1682,11 +1670,11 @@ dedicated test class or `Describe` block.
 | REQ-SPR-050     | TC-U131 (via TC-U121, TC-U124)                       | Covered |
 | REQ-SPR-060     | TC-U154, TC-U156                                    | Covered |
 | REQ-SPR-070     | TC-U154, TC-U155, TC-U156, TC-U157                  | Covered |
-| REQ-SPP-010     | TC-U139, TC-U140, TC-U141                            | Covered |
-| REQ-SPP-020     | TC-U139                                             | Covered |
-| REQ-SPP-030     | TC-U142                                             | Covered |
-| REQ-SPP-040     | TC-U143                                             | Covered |
-| REQ-SPP-050     | TC-U149 (via TC-U139, TC-U142)                       | Covered |
+| REQ-AGT-010     | TC-U139, TC-U140, TC-U141, TC-U144                   | Covered |
+| REQ-AGT-020     | TC-U139, TC-U144                                     | Covered |
+| REQ-AGT-030     | TC-U142, TC-U145                                     | Covered |
+| REQ-AGT-040     | TC-U143                                             | Covered |
+| REQ-AGT-050     | TC-U139, TC-U142, TC-U149                            | Covered |
 | REQ-VER-010     | TC-U024                                             | Covered |
 | REQ-VER-020     | TC-U024                                             | Covered |
 | REQ-VER-030     | TC-U025                                             | Covered |

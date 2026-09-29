@@ -18,7 +18,7 @@ control-plane monolith on port 8080. The CLI uses generated clients from
 - Catalog item operations (create, list, get, delete)
 - Catalog item instance operations (create, list, get, delete, rehydrate)
 - SP resource read operations (list, get) via Service Provider Resource Manager
-- SP provider read operations (list, get) via Service Provider Manager
+- Environment agent read operations (list, get) via Agent Manager
 - Version display
 - Output formatting (table, JSON, YAML)
 - Configuration via file, environment variables, and flags
@@ -76,7 +76,7 @@ dcm-cli/
 │   │   ├── catalog_item.go            ← Catalog item command group
 │   │   ├── catalog_instance.go        ← Catalog instance command group
 │   │   ├── sp_resource.go            ← SP resource command group
-│   │   ├── sp_provider.go            ← SP provider command group
+│   │   ├── agent.go                 ← Environment agent command group
 │   │   └── completion.go             ← Shell completion command
 │   └── version/                       ← Build-time version info
 ├── test/e2e/                          ← E2E tests (build tag: e2e)
@@ -167,7 +167,8 @@ Out of scope: shell autocompletion, plugin system, interactive prompts.
 - **When** `dcm --help` is run
 - **Then** subcommands `policy`, `catalog`, `sp`, `version`, and `completion` MUST be listed
 - **And** `dcm catalog --help` MUST list `service-type`, `item`, and `instance`
-- **And** `dcm sp --help` MUST list `resource` and `provider`
+- **And** `dcm sp --help` MUST list `resource`
+- **And** `dcm --help` MUST list `agent`
 
 ##### AC-CLI-040: Exit code on success
 
@@ -1015,7 +1016,7 @@ SP health check.
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-SPR-010 | `dcm sp resource list` MUST list SP resources (service type instances) with optional `--provider`, `--show-deleted`, `--page-size`, `--page-token` flags | MUST | |
+| REQ-SPR-010 | `dcm sp resource list` MUST list SP resources (service type instances) with optional `--agent-name`, `--show-deleted`, `--page-size`, `--page-token` flags | MUST | |
 | REQ-SPR-020 | `dcm sp resource list` MUST display SP resources in the configured output format | MUST | |
 | REQ-SPR-030 | `dcm sp resource get` MUST accept an `INSTANCE_ID` positional argument and display the SP resource | MUST | |
 | REQ-SPR-035 | `dcm sp resource get` MUST support an optional `--show-deleted` flag | MUST | |
@@ -1028,15 +1029,15 @@ SP health check.
 
 Default:
 ```
-ID            PROVIDER        STATUS  CREATED
-my-instance   kubevirt-123    READY   2026-03-09T10:00:00Z
+ID            AGENT           STATUS  CREATED
+my-instance   kubevirt-east   READY   2026-03-09T10:00:00Z
 ```
 
 With `--show-deleted`:
 ```
-ID                PROVIDER        STATUS   DELETION STATUS  CREATED
-my-instance       kubevirt-123    READY                     2026-03-09T10:00:00Z
-deleted-instance  kubevirt-123    DELETED  PENDING          2026-03-09T10:00:00Z
+ID                AGENT           STATUS   DELETION STATUS  CREATED
+my-instance       kubevirt-east   READY                     2026-03-09T10:00:00Z
+deleted-instance  kubevirt-east   DELETED  PENDING          2026-03-09T10:00:00Z
 ```
 
 #### Acceptance Criteria
@@ -1056,12 +1057,12 @@ deleted-instance  kubevirt-123    DELETED  PENDING          2026-03-09T10:00:00Z
 - **When** `dcm sp resource list --page-size 5` is invoked
 - **Then** the GET request MUST include `max_page_size=5` as a query parameter
 
-##### AC-SPR-030: List SP resources with provider filter
+##### AC-SPR-030: List SP resources with agent-name filter
 
 - **Validates:** REQ-SPR-010
 - **Given** SP resources exist in the system
-- **When** `dcm sp resource list --provider kubevirt-123` is invoked
-- **Then** the GET request MUST include `provider=kubevirt-123` as a query parameter
+- **When** `dcm sp resource list --agent-name kubevirt-east` is invoked
+- **Then** the GET request MUST include `agent_name=kubevirt-east` as a query parameter
 
 ##### AC-SPR-035: List SP resources with show-deleted
 
@@ -1218,96 +1219,72 @@ Depends on Topic 1 (CLI Framework).
 
 ---
 
-### 4.11 SP Provider Commands
+### 4.11 Environment Agent Commands
 
 #### Overview
 
-Implement the `dcm sp provider` command group with read-only subcommands: `list`
-and `get`. Providers are service providers registered with the Service Provider
-Manager. The CLI provides read-only access to these resources via the top-level
-generated SP Manager client ([pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider)).
+Implement the `dcm agent` command group with read-only subcommands: `list`
+and `get`. Agents are environment agents registered with the Agent Manager.
+The CLI provides read-only access via the generated agent client
+([pkg/agent/client](https://github.com/dcm-project/control-plane/tree/main/pkg/agent/client)).
 
-Out of scope: SP provider create/update/delete (managed via other flows),
-SP provider health check.
+Out of scope: agent create/register, heartbeat, delete.
 
 #### Requirements
 
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
-| REQ-SPP-010 | `dcm sp provider list` MUST list SP providers with optional `--type`, `--page-size`, `--page-token` flags | MUST | |
-| REQ-SPP-020 | `dcm sp provider list` MUST display SP providers in the configured output format | MUST | |
-| REQ-SPP-030 | `dcm sp provider get` MUST accept a `PROVIDER_ID` positional argument and display the SP provider | MUST | |
-| REQ-SPP-040 | Missing `PROVIDER_ID` argument for `get` MUST result in a usage error (exit code 2) | MUST | |
-| REQ-SPP-050 | All SP provider commands MUST use the generated SP Manager client ([pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider)) | MUST | |
+| REQ-AGT-010 | `dcm agent list` MUST list agents with optional `--health-status`, `--page-size`, `--page-token` flags | MUST | |
+| REQ-AGT-020 | `dcm agent list` MUST display agents in the configured output format | MUST | |
+| REQ-AGT-030 | `dcm agent get` MUST accept an `AGENT_ID` positional argument and display the agent | MUST | |
+| REQ-AGT-040 | Missing `AGENT_ID` argument for `get` MUST result in a usage error (exit code 2) | MUST | |
+| REQ-AGT-050 | All agent commands MUST use the generated Agent Manager client ([pkg/agent/client](https://github.com/dcm-project/control-plane/tree/main/pkg/agent/client)) | MUST | |
 
 #### Table Output Columns
 
 ```
-ID              NAME            SERVICE TYPE    HEALTH    CREATED
-kubevirt-123    KubeVirt SP     compute         healthy   2026-03-09T10:00:00Z
+ID         NAME            ENVIRONMENT  HEALTH  CREATED
+agent-123  kubevirt-east   production   ready   2026-03-09T10:00:00Z
 ```
 
 #### Acceptance Criteria
 
-##### AC-SPP-010: List SP providers
+##### AC-AGT-010: List agents
 
-- **Validates:** REQ-SPP-010, REQ-SPP-020
-- **Given** SP providers exist in the system
-- **When** `dcm sp provider list` is invoked
-- **Then** a GET request MUST be sent to `/api/v1alpha1/providers`
-- **And** the SP providers MUST be displayed in the configured output format
+- **Validates:** REQ-AGT-010, REQ-AGT-020
+- **Given** agents exist in the system
+- **When** `dcm agent list` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/agents`
+- **And** the agents MUST be displayed in the configured output format
 
-##### AC-SPP-020: List SP providers with pagination
+##### AC-AGT-020: List agents with pagination
 
-- **Validates:** REQ-SPP-010
-- **Given** SP providers exist in the system
-- **When** `dcm sp provider list --page-size 5` is invoked
+- **Validates:** REQ-AGT-010
+- **Given** agents exist in the system
+- **When** `dcm agent list --page-size 5` is invoked
 - **Then** the GET request MUST include `max_page_size=5` as a query parameter
 
-##### AC-SPP-030: List SP providers with type filter
+##### AC-AGT-030: List agents with health-status filter
 
-- **Validates:** REQ-SPP-010
-- **Given** SP providers exist in the system
-- **When** `dcm sp provider list --type compute` is invoked
-- **Then** the GET request MUST include `type=compute` as a query parameter
+- **Validates:** REQ-AGT-010
+- **Given** agents exist in the system
+- **When** `dcm agent list --health-status ready` is invoked
+- **Then** the GET request MUST include `health_status=ready` as a query parameter
 
-##### AC-SPP-040: Get SP provider
+##### AC-AGT-040: Get agent
 
-- **Validates:** REQ-SPP-030
-- **Given** an SP provider with ID `kubevirt-123` exists
-- **When** `dcm sp provider get kubevirt-123` is invoked
-- **Then** a GET request MUST be sent to `/api/v1alpha1/providers/kubevirt-123`
-- **And** the SP provider MUST be displayed in the configured output format
+- **Validates:** REQ-AGT-030
+- **Given** an agent with ID `agent-123` exists
+- **When** `dcm agent get agent-123` is invoked
+- **Then** a GET request MUST be sent to `/api/v1alpha1/agents/agent-123`
+- **And** the agent MUST be displayed in the configured output format
 
-##### AC-SPP-050: Get without PROVIDER_ID
+##### AC-AGT-050: Get without AGENT_ID
 
-- **Validates:** REQ-SPP-040
+- **Validates:** REQ-AGT-040
 - **Given** no positional argument is provided
-- **When** `dcm sp provider get` is invoked
+- **When** `dcm agent get` is invoked
 - **Then** the CLI MUST exit with code 2 and display a usage error
-
-##### AC-SPP-060: List SP providers returns empty list
-
-- **Validates:** REQ-SPP-010, REQ-SPP-020
-- **Given** no SP providers exist in the system
-- **When** `dcm sp provider list` is invoked
-- **Then** a GET request MUST be sent to `/api/v1alpha1/providers`
-- **And** an empty result MUST be displayed (empty table with headers only, or empty JSON array/YAML list)
-
-##### AC-SPP-070: Get non-existent SP provider
-
-- **Validates:** REQ-SPP-030, REQ-XC-ERR-010
-- **Given** no SP provider with ID `nonexistent` exists
-- **When** `dcm sp provider get nonexistent` is invoked
-- **Then** the API returns a 404 with RFC 7807 body
-- **And** the CLI MUST display the error in the configured output format and exit with code 1
-
-##### AC-SPP-080: Generated client usage
-
-- **Validates:** REQ-SPP-050
-- **Given** any SP provider command is invoked
-- **When** the command communicates with the API
-- **Then** the generated SP Manager client MUST be used
 
 #### Dependencies
 
@@ -1420,7 +1397,7 @@ Formatting).
 | REQ-XC-CLI-010 | The CLI MUST use the generated Policy Manager client ([pkg/policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client)) for all policy operations | MUST | |
 | REQ-XC-CLI-020 | The CLI MUST use the generated Catalog Manager client ([pkg/catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client)) for all catalog operations | MUST | |
 | REQ-XC-CLI-025 | The CLI MUST use the generated SP Resource Manager client ([pkg/sp/client/resource_manager](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/resource_manager)) for all SP resource operations | MUST | |
-| REQ-XC-CLI-026 | The CLI MUST use the generated SP Manager client ([pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider)) for all SP provider operations | MUST | |
+| REQ-XC-CLI-026 | The CLI MUST use the generated Agent Manager client ([pkg/agent/client](https://github.com/dcm-project/control-plane/tree/main/pkg/agent/client)) for all agent operations | MUST | |
 | REQ-XC-CLI-030 | All clients MUST be instantiated with the control-plane URL appended with `/api/v1alpha1` | MUST | |
 | REQ-XC-CLI-040 | All clients MUST respect the configured request timeout. The timeout applies to the HTTP request deadline (context timeout) only; file I/O and output formatting are not subject to the timeout. | MUST | |
 | REQ-XC-CLI-050 | All clients MUST use a custom HTTP client with TLS transport when the control-plane URL uses `https://` | MUST | |

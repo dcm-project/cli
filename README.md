@@ -4,7 +4,7 @@
 
 ### 1.1 Purpose
 
-The DCM CLI (`dcm`) is the primary user-facing command-line interface for interacting with the DCM (Data Center Management) control plane. It provides commands for managing policies, service types, catalog items, catalog item instances, and service provider resources through the control-plane monolith API.
+The DCM CLI (`dcm`) is the primary user-facing command-line interface for interacting with the DCM (Data Center Management) control plane. It provides commands for managing policies, service types, catalog items, catalog item instances, service provider resources, and environment agents through the control-plane monolith API.
 
 ### 1.2 Version Scope
 
@@ -52,7 +52,7 @@ The CLI communicates exclusively through the control plane (port 8080). When the
 - `/api/v1alpha1/catalog-items/*` → Catalog Manager
 - `/api/v1alpha1/catalog-item-instances/*` → Catalog Manager
 - `/api/v1alpha1/service-type-instances/*` → SP Resource Manager
-- `/api/v1alpha1/providers/*` → SP Manager
+- `/api/v1alpha1/agents/*` → Agent Manager
 
 ### 2.2 Internal Architecture
 
@@ -75,6 +75,7 @@ internal/
     catalog_instance.go      ← Catalog instance command group
     sp.go                    ← SP parent command group
     sp_resource.go           ← SP resource command group
+    agent.go                 ← Environment agent command group
     completion.go            ← Shell completion command
 ```
 
@@ -586,22 +587,23 @@ List SP resources (service type instances) with optional filtering and paginatio
 
 | Flag | Required | Description |
 |------|----------|-------------|
-| `--provider` | No | Filter by provider |
+| `--agent-name` | No | Filter by agent name |
 | `--page-size` | No | Maximum results per page |
 | `--page-token` | No | Token for next page |
+| `--show-deleted` | No | Include soft-deleted resources |
 
 ```bash
 dcm sp resource list
-dcm sp resource list --provider kubevirt-123
+dcm sp resource list --agent-name kubevirt-east
 dcm sp resource list --page-size 5
 ```
 
 Example output (table):
 
 ```
-ID              PROVIDER        STATUS   CREATED
-my-instance     kubevirt-123    ACTIVE   2026-03-09T10:00:00Z
-other-instance  openstack-456   PENDING  2026-03-08T15:30:00Z
+ID              AGENT           STATUS   CREATED
+my-instance     kubevirt-east   ACTIVE   2026-03-09T10:00:00Z
+other-instance  openstack-west  PENDING  2026-03-08T15:30:00Z
 ```
 
 #### `dcm sp resource get`
@@ -617,7 +619,45 @@ dcm sp resource get INSTANCE_ID
 dcm sp resource get INSTANCE_ID -o yaml
 ```
 
-### 4.10 Completion Command
+### 4.10 Agent Commands
+
+#### `dcm agent list`
+
+List environment agents with optional filtering and pagination.
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--health-status` | No | Filter by health status (`ready`, `congested`, `unavailable`) |
+| `--page-size` | No | Maximum results per page |
+| `--page-token` | No | Token for next page |
+
+```bash
+dcm agent list
+dcm agent list --health-status ready
+dcm agent list --page-size 5
+```
+
+Example output (table):
+
+```
+ID         NAME            ENVIRONMENT  HEALTH  CREATED
+agent-123  kubevirt-east   production   ready   2026-03-09T10:00:00Z
+```
+
+#### `dcm agent get`
+
+Get a single environment agent by ID.
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `AGENT_ID` | Yes | Agent ID |
+
+```bash
+dcm agent get AGENT_ID
+dcm agent get AGENT_ID -o yaml
+```
+
+### 4.11 Completion Command
 
 #### `dcm completion`
 
@@ -641,7 +681,7 @@ dcm completion fish | source
 dcm completion powershell | Out-String | Invoke-Expression
 ```
 
-### 4.11 Version Command
+### 4.12 Version Command
 
 #### `dcm version`
 
@@ -812,7 +852,7 @@ The CLI imports generated client packages from the control-plane monorepo:
 - [pkg/policy/client](https://github.com/dcm-project/control-plane/tree/main/pkg/policy/client) — Policy Manager client
 - [pkg/catalog/client](https://github.com/dcm-project/control-plane/tree/main/pkg/catalog/client) — Catalog Manager client
 - [pkg/sp/client/resource_manager](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/resource_manager) — SP Resource Manager client
-- [pkg/sp/client/provider](https://github.com/dcm-project/control-plane/tree/main/pkg/sp/client/provider) — SP Manager client
+- [pkg/agent/client](https://github.com/dcm-project/control-plane/tree/main/pkg/agent/client) — Agent Manager client
 
 These are oapi-codegen generated clients providing typed API access. Key interfaces:
 

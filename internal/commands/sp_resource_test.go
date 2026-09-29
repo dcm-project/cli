@@ -156,6 +156,21 @@ var _ = Describe("SP Resource Commands", func() {
 			Expect(outBuf.String()).To(ContainSubstring("Next page: dcm sp resource list --agent-name kubevirt-east --page-token page-2"))
 		})
 
+		It("should include --show-deleted in the next-page command", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Expect(r.URL.Query().Get("show_deleted")).To(Equal("true"))
+
+				writeJSONResponse(w, http.StatusOK, map[string]any{
+					"instances":       []any{sampleDeletedSPResourceResponse()},
+					"next_page_token": "page-2",
+				})
+			}))
+
+			err := executeCommand("sp", "resource", "list", "--show-deleted")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(outBuf.String()).To(ContainSubstring("Next page: dcm sp resource list --show-deleted --page-token page-2"))
+		})
+
 		It("should pass show_deleted query parameter", func() {
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				Expect(r.URL.Query().Get("show_deleted")).To(Equal("true"))

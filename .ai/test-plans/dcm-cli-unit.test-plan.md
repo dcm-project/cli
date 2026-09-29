@@ -1145,6 +1145,33 @@ test classes. Instead:
 - **When:** `dcm agent get` is executed
 - **Then:** The CLI exits with code 2 and displays a usage error
 
+### TC-U144: List agents returns empty list
+
+- **Requirement:** REQ-AGT-010, REQ-AGT-020
+- **Acceptance Criteria:** AC-AGT-010
+- **Type:** Unit
+- **Given:** A mock server returning 200 with an empty agent list (`{"agents":[],"next_page_token":""}`)
+- **When:** `dcm agent list` is executed
+- **Then:** An empty result is displayed (empty table with headers only for table format, empty array for JSON, empty list for YAML)
+
+### TC-U145: Get non-existent agent
+
+- **Requirement:** REQ-AGT-030, REQ-XC-ERR-010
+- **Acceptance Criteria:** AC-AGT-040, AC-XC-ERR-010
+- **Type:** Unit
+- **Given:** A mock server returning 404 with RFC 7807 body for agent ID `nonexistent`
+- **When:** `dcm agent get nonexistent` is executed
+- **Then:** The CLI displays the error in the configured output format AND exits with code 1
+
+### TC-U146: Agent table output columns
+
+- **Requirement:** REQ-OUT-050
+- **Acceptance Criteria:** AC-OUT-010
+- **Type:** Unit
+- **Given:** A mock server returning an agent with all fields populated
+- **When:** `dcm agent get agent-123` is executed with `--output table`
+- **Then:** The table output includes columns: ID, NAME, ENVIRONMENT, HEALTH, CREATED
+
 ---
 
 ## 11 · TLS Configuration
@@ -1477,24 +1504,24 @@ dedicated test class or `Describe` block.
 - **Then:** The generated SP Resource Manager client is used (verified by mock server receiving correctly structured requests)
 - **Referenced by:** TC-U121 (list), TC-U124 (get)
 
-#### TC-U148: SP Manager client instantiated with correct URL
+#### TC-U148: Agent Manager client instantiated with correct URL
 
 - **Requirement:** REQ-XC-CLI-026, REQ-XC-CLI-030
 - **Acceptance Criteria:** AC-XC-CLI-010
 - **Type:** Unit
 - **Given:** The control-plane URL is `http://localhost:8080`
-- **When:** The SP Manager client is created
+- **When:** The Agent Manager client is created
 - **Then:** The client base URL is `http://localhost:8080/api/v1alpha1`
-- **Referenced by:** TC-U139 (list SP providers verifies request goes to correct URL path)
+- **Referenced by:** TC-U139 (list agents verifies request goes to correct URL path)
 
-#### TC-U149: SP Manager generated client used for SP provider operations
+#### TC-U149: Agent Manager generated client used for agent operations
 
-- **Requirement:** REQ-XC-CLI-026, REQ-SPP-050
-- **Acceptance Criteria:** AC-SPP-080
+- **Requirement:** REQ-XC-CLI-026, REQ-AGT-050
+- **Acceptance Criteria:** AC-AGT-010
 - **Type:** Unit (structural)
-- **Given:** Any SP provider command is invoked
+- **Given:** Any agent command is invoked
 - **When:** The command communicates with the API
-- **Then:** The generated SP Manager client is used (verified by mock server receiving correctly structured requests)
+- **Then:** The generated Agent Manager client is used (verified by mock server receiving correctly structured requests)
 - **Referenced by:** TC-U139 (list), TC-U142 (get)
 
 #### TC-U068: Request timeout applied to HTTP requests
@@ -1643,11 +1670,11 @@ dedicated test class or `Describe` block.
 | REQ-SPR-050     | TC-U131 (via TC-U121, TC-U124)                       | Covered |
 | REQ-SPR-060     | TC-U154, TC-U156                                    | Covered |
 | REQ-SPR-070     | TC-U154, TC-U155, TC-U156, TC-U157                  | Covered |
-| REQ-AGT-010     | TC-U139, TC-U140, TC-U141                            | Covered |
-| REQ-AGT-020     | TC-U139                                             | Covered |
-| REQ-AGT-030     | TC-U142                                             | Covered |
+| REQ-AGT-010     | TC-U139, TC-U140, TC-U141, TC-U144                   | Covered |
+| REQ-AGT-020     | TC-U139, TC-U144                                     | Covered |
+| REQ-AGT-030     | TC-U142, TC-U145                                     | Covered |
 | REQ-AGT-040     | TC-U143                                             | Covered |
-| REQ-AGT-050     | TC-U139, TC-U142                                     | Covered |
+| REQ-AGT-050     | TC-U139, TC-U142, TC-U149                            | Covered |
 | REQ-VER-010     | TC-U024                                             | Covered |
 | REQ-VER-020     | TC-U024                                             | Covered |
 | REQ-VER-030     | TC-U025                                             | Covered |
